@@ -228,6 +228,9 @@ export default class Game extends Phaser.Scene {
             paletteGraphics.strokeRect(x, y, paletteSize, paletteSize);
 
             paletteGraphics.setInteractive(new Phaser.Geom.Rectangle(x, y, paletteSize, paletteSize), Phaser.Geom.Rectangle.Contains);
+            if (paletteGraphics.input) {
+                paletteGraphics.input.cursor = 'pointer';
+            }
             paletteGraphics.on('pointerdown', () => {
                 this.currentColor = color;
             });
