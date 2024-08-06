@@ -58,6 +58,16 @@ export default class Game extends Phaser.Scene {
                     graphics.fillRect(cellX, cellY, cellSize, cellSize);
                     graphics.lineStyle(borderSize, 0x000000);
                     graphics.strokeRect(cellX, cellY, cellSize, cellSize);
+
+                    const rect = this.add.rectangle(cellX + cellSize / 2, cellY + cellSize / 2, cellSize, cellSize, 0xffffff, 0)
+                        .setInteractive({ useHandCursor: true });
+
+                    rect.on('pointerdown', () => {
+                        graphics.fillStyle(Phaser.Display.Color.GetColor(255, 255, 255), 1);
+                        graphics.fillRect(cellX, cellY, cellSize, cellSize);
+                        graphics.lineStyle(borderSize, 0x000000);
+                        graphics.strokeRect(cellX, cellY, cellSize, cellSize);
+                    });
                 }
             }
         } else {
