@@ -6,6 +6,8 @@ export default class Game extends Phaser.Scene {
     private currentColor: number = 0xffffff;
     private cellSize: number = 30;
     private borderSize: number = 1;
+    private gridBorderThickness: number = 5;
+    private gapSize: number = 10; 
     private offsetX: number = 0;
     private offsetY: number = 0;
     private cellGraphics: Phaser.GameObjects.Graphics[][] = [];
@@ -55,11 +57,11 @@ export default class Game extends Phaser.Scene {
             const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
 
-            const gridWidth = (canvas.width + 5) * (this.cellSize + this.borderSize); // Adjusted for extra cell
-            const gridHeight = (canvas.height + 5) * (this.cellSize + this.borderSize); // Adjusted for extra cell
+            const gridWidth = canvas.width * (this.cellSize + this.borderSize);
+            const gridHeight = canvas.height * (this.cellSize + this.borderSize);
 
-            this.offsetX = (this.sys.game.config.width as number - gridWidth) / 2;
-            this.offsetY = (this.sys.game.config.height as number - gridHeight) / 2;
+            this.offsetX = (this.sys.game.config.width as number - gridWidth) / 2 + this.gapSize;
+            this.offsetY = (this.sys.game.config.height as number - gridHeight) / 2 + this.gapSize;
 
             this.calculateClues(canvas.width, canvas.height, data);
 
@@ -69,7 +71,7 @@ export default class Game extends Phaser.Scene {
                 for (let i = 0; i < clues.length; i++) {
                     const clue = clues[i];
                     const cellY = this.offsetY + y * (this.cellSize + this.borderSize);
-                    const cellX = this.offsetX + (i - clues.length) * (this.cellSize + this.borderSize);
+                    const cellX = this.offsetX - (clues.length - i) * (this.cellSize + this.borderSize) - this.gapSize;
 
                     const clueGraphics = this.add.graphics();
                     clueGraphics.fillStyle(clue.color, 1);
@@ -89,7 +91,7 @@ export default class Game extends Phaser.Scene {
                 for (let i = 0; i < clues.length; i++) {
                     const clue = clues[i];
                     const cellX = this.offsetX + x * (this.cellSize + this.borderSize);
-                    const cellY = this.offsetY + (i - clues.length) * (this.cellSize + this.borderSize);
+                    const cellY = this.offsetY - (clues.length - i) * (this.cellSize + this.borderSize) - this.gapSize;
 
                     const clueGraphics = this.add.graphics();
                     clueGraphics.fillStyle(clue.color, 1);
@@ -103,6 +105,7 @@ export default class Game extends Phaser.Scene {
                 }
             }
 
+            //game grid
             for (let y = 0; y < canvas.height; y++) {
                 const row: Phaser.GameObjects.Graphics[] = [];
                 for (let x = 0; x < canvas.width; x++) {
@@ -142,6 +145,17 @@ export default class Game extends Phaser.Scene {
                 }
                 this.cellGraphics.push(row);
             }
+
+            //border around game grid
+            const borderGraphics = this.add.graphics();
+            borderGraphics.lineStyle(this.gridBorderThickness, 0x000000);
+            borderGraphics.strokeRect(
+                this.offsetX - this.borderSize / 2,
+                this.offsetY - this.borderSize / 2,
+                gridWidth + this.borderSize,
+                gridHeight + this.borderSize
+            );
+
         } else {
             console.error('Unable to get 2D context from canvas');
         }
