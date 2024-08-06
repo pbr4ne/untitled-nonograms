@@ -7,7 +7,7 @@ export default class Game extends Phaser.Scene {
     private cellSize: number = 30;
     private borderSize: number = 1;
     private gridBorderThickness: number = 5;
-    private gapSize: number = 10; 
+    private gapSize: number = 10;
     private offsetX: number = 0;
     private offsetY: number = 0;
     private cellGraphics: Phaser.GameObjects.Graphics[][] = [];
@@ -57,11 +57,20 @@ export default class Game extends Phaser.Scene {
             const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
 
+            //calculate the optimal cell size based on screen size and image size
+            const screenWidth = this.sys.game.config.width as number;
+            const screenHeight = this.sys.game.config.height as number;
+            const maxGridWidth = screenWidth - this.gapSize * 2 - this.gridBorderThickness * 2;
+            const maxGridHeight = screenHeight - this.gapSize * 2 - this.gridBorderThickness * 2;
+            const cellSizeX = maxGridWidth / (canvas.width + 10);
+            const cellSizeY = maxGridHeight / (canvas.height + 10); 
+            this.cellSize = Math.min(cellSizeX, cellSizeY);
+
             const gridWidth = canvas.width * (this.cellSize + this.borderSize);
             const gridHeight = canvas.height * (this.cellSize + this.borderSize);
 
-            this.offsetX = (this.sys.game.config.width as number - gridWidth) / 2 + this.gapSize;
-            this.offsetY = (this.sys.game.config.height as number - gridHeight) / 2 + this.gapSize;
+            this.offsetX = (screenWidth - gridWidth) / 2 + this.gapSize;
+            this.offsetY = (screenHeight - gridHeight) / 2 + this.gapSize;
 
             this.calculateClues(canvas.width, canvas.height, data);
 
