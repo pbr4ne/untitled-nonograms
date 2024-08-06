@@ -70,13 +70,24 @@ export default class Game extends Phaser.Scene {
             const gridWidth = canvas.width * this.cellSize;
             const gridHeight = canvas.height * this.cellSize;
 
-            this.offsetX = (screenWidth - gridWidth) / 2 + this.gapSize;
-            this.offsetY = (screenHeight - gridHeight) / 2 + this.gapSize;
-
             this.calculateClues(canvas.width, canvas.height, data);
 
+            //calculate the maximum number of clues in each dimension
+            const maxRowClues = Math.max(...this.rowClues.map(clues => clues.length));
+            const maxColClues = Math.max(...this.colClues.map(clues => clues.length));
+
+            //calculate total width and height including clues
+            const totalWidth = gridWidth + maxRowClues * this.cellSize + this.gapSize;
+            const totalHeight = gridHeight + maxColClues * this.cellSize + this.gapSize;
+
+            //adjust offsets to center the entire grid including clues
+            this.offsetX = (screenWidth - totalWidth) / 2 + maxRowClues * this.cellSize + this.gapSize;
+            this.offsetY = (screenHeight - totalHeight) / 2 + maxColClues * this.cellSize + this.gapSize;
+
+            //extract unique colors from the image
             const uniqueColors = this.extractUniqueColors(data);
 
+            //draw the color palette
             this.drawColorPalette(uniqueColors);
 
             //row clues
