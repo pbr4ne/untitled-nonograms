@@ -9,6 +9,8 @@ export default class Game extends Phaser.Scene {
     create() {
         this.cameras.main.setBackgroundColor('#8ecae6');
         this.analyzeAndDrawImage('picture1');
+
+        this.input?.mouse?.disableContextMenu();
     }
 
     analyzeAndDrawImage(key: string) {
