@@ -9,7 +9,6 @@ export default class Game extends Phaser.Scene {
     create() {
         this.cameras.main.setBackgroundColor('#8ecae6');
         this.analyzeAndDrawImage('picture1');
-
     }
 
     analyzeAndDrawImage(key: string) {
@@ -40,9 +39,10 @@ export default class Game extends Phaser.Scene {
             const offsetX = (this.sys.game.config.width as number - gridWidth) / 2;
             const offsetY = (this.sys.game.config.height as number - gridHeight) / 2;
 
-            const graphics = this.add.graphics();
+            const cellGraphics: Phaser.GameObjects.Graphics[][] = [];
 
             for (let y = 0; y < canvas.height; y++) {
+                const row: Phaser.GameObjects.Graphics[] = [];
                 for (let x = 0; x < canvas.width; x++) {
                     const index = (x + y * canvas.width) * 4;
                     const r = data[index];
@@ -50,25 +50,34 @@ export default class Game extends Phaser.Scene {
                     const b = data[index + 2];
                     const a = data[index + 3] / 255;
 
-                    graphics.fillStyle(Phaser.Display.Color.GetColor(r, g, b), a);
-
                     const cellX = offsetX + x * (cellSize + borderSize);
                     const cellY = offsetY + y * (cellSize + borderSize);
 
+                    const graphics = this.add.graphics();
+                    graphics.fillStyle(Phaser.Display.Color.GetColor(r, g, b), a);
                     graphics.fillRect(cellX, cellY, cellSize, cellSize);
                     graphics.lineStyle(borderSize, 0x000000);
                     graphics.strokeRect(cellX, cellY, cellSize, cellSize);
 
+                    row.push(graphics);
+
                     const rect = this.add.rectangle(cellX + cellSize / 2, cellY + cellSize / 2, cellSize, cellSize, 0xffffff, 0)
                         .setInteractive({ useHandCursor: true });
 
-                    rect.on('pointerdown', () => {
-                        graphics.fillStyle(Phaser.Display.Color.GetColor(255, 255, 255), 1);
-                        graphics.fillRect(cellX, cellY, cellSize, cellSize);
-                        graphics.lineStyle(borderSize, 0x000000);
-                        graphics.strokeRect(cellX, cellY, cellSize, cellSize);
+                    rect.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+                        if (pointer.rightButtonDown()) {
+                            graphics.clear();
+                            graphics.lineStyle(borderSize, 0x000000);
+                            graphics.strokeRect(cellX, cellY, cellSize, cellSize);
+                        } else {
+                            graphics.fillStyle(Phaser.Display.Color.GetColor(255, 255, 255), 1);
+                            graphics.fillRect(cellX, cellY, cellSize, cellSize);
+                            graphics.lineStyle(borderSize, 0x000000);
+                            graphics.strokeRect(cellX, cellY, cellSize, cellSize);
+                        }
                     });
                 }
+                cellGraphics.push(row);
             }
         } else {
             console.error('Unable to get 2D context from canvas');
