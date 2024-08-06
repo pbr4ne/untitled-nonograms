@@ -70,14 +70,15 @@ export default class Game extends Phaser.Scene {
                     const clue = clues[i];
                     const cellY = this.offsetY + (y + 5) * (this.cellSize + this.borderSize);
                     const cellX = this.offsetX - (clues.length - i) * (this.cellSize + this.borderSize);
-
+            
                     const clueGraphics = this.add.graphics();
                     clueGraphics.fillStyle(clue.color, 1);
                     clueGraphics.fillRect(cellX, cellY, this.cellSize, this.cellSize);
                     clueGraphics.lineStyle(this.borderSize, 0x000000);
                     clueGraphics.strokeRect(cellX, cellY, this.cellSize, this.cellSize);
-
-                    this.add.text(cellX + this.cellSize / 2, cellY + this.cellSize / 2, clue.count.toString(), { color: '#000000' })
+            
+                    const textColor = this.calculateBrightness(clue.color) < 128 ? '#ffffff' : '#000000';
+                    this.add.text(cellX + this.cellSize / 2, cellY + this.cellSize / 2, clue.count.toString(), { color: textColor })
                         .setOrigin(0.5);
                 }
             }
@@ -89,14 +90,15 @@ export default class Game extends Phaser.Scene {
                     const clue = clues[i];
                     const cellX = this.offsetX + (x + 5) * (this.cellSize + this.borderSize);
                     const cellY = this.offsetY - (clues.length - i) * (this.cellSize + this.borderSize);
-
+            
                     const clueGraphics = this.add.graphics();
                     clueGraphics.fillStyle(clue.color, 1);
                     clueGraphics.fillRect(cellX, cellY, this.cellSize, this.cellSize);
                     clueGraphics.lineStyle(this.borderSize, 0x000000);
                     clueGraphics.strokeRect(cellX, cellY, this.cellSize, this.cellSize);
-
-                    this.add.text(cellX + this.cellSize / 2, cellY + this.cellSize / 2, clue.count.toString(), { color: '#000000' })
+            
+                    const textColor = this.calculateBrightness(clue.color) < 128 ? '#ffffff' : '#000000';
+                    this.add.text(cellX + this.cellSize / 2, cellY + this.cellSize / 2, clue.count.toString(), { color: textColor })
                         .setOrigin(0.5);
                 }
             }
@@ -145,6 +147,12 @@ export default class Game extends Phaser.Scene {
         }
     }
 
+    calculateBrightness(color: number): number {
+        const r = (color >> 16) & 0xff;
+        const g = (color >> 8) & 0xff;
+        const b = color & 0xff;
+        return Math.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b);
+    }
     calculateClues(width: number, height: number, data: Uint8ClampedArray) {
         this.rowClues = [];
         this.colClues = [];
