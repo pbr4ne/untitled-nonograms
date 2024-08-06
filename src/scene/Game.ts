@@ -144,7 +144,6 @@ export default class Game extends Phaser.Scene {
                     const cellY = this.offsetY + y * this.cellSize;
 
                     const graphics = this.add.graphics();
-                    graphics.fillStyle(Phaser.Display.Color.GetColor(r, g, b), a);
                     graphics.fillRect(cellX, cellY, this.cellSize, this.cellSize);
 
                     row.push(graphics);
@@ -208,6 +207,7 @@ export default class Game extends Phaser.Scene {
                 uniqueColors.add(color);
             }
         }
+        this.currentColor = Array.from(uniqueColors)[0];
         return Array.from(uniqueColors);
     }
 
