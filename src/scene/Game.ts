@@ -5,9 +5,9 @@ export default class Game extends Phaser.Scene {
     private isDrawing: boolean = false;
     private currentColor: number = 0xffffff;
     private cellSize: number = 30;
-    private borderSize: number = 1;
+    private borderSize: number = 2;
     private gridBorderThickness: number = 5;
-    private gapSize: number = 10;
+    private gapSize: number = 0;
     private offsetX: number = 0;
     private offsetY: number = 0;
     private cellGraphics: Phaser.GameObjects.Graphics[][] = [];
@@ -63,11 +63,11 @@ export default class Game extends Phaser.Scene {
             const maxGridWidth = screenWidth - this.gapSize * 2 - this.gridBorderThickness * 2;
             const maxGridHeight = screenHeight - this.gapSize * 2 - this.gridBorderThickness * 2;
             const cellSizeX = maxGridWidth / (canvas.width + 10);
-            const cellSizeY = maxGridHeight / (canvas.height + 10); 
+            const cellSizeY = maxGridHeight / (canvas.height + 10);
             this.cellSize = Math.min(cellSizeX, cellSizeY);
 
-            const gridWidth = canvas.width * (this.cellSize + this.borderSize);
-            const gridHeight = canvas.height * (this.cellSize + this.borderSize);
+            const gridWidth = canvas.width * this.cellSize;
+            const gridHeight = canvas.height * this.cellSize;
 
             this.offsetX = (screenWidth - gridWidth) / 2 + this.gapSize;
             this.offsetY = (screenHeight - gridHeight) / 2 + this.gapSize;
@@ -79,8 +79,8 @@ export default class Game extends Phaser.Scene {
                 const clues = this.rowClues[y];
                 for (let i = 0; i < clues.length; i++) {
                     const clue = clues[i];
-                    const cellY = this.offsetY + y * (this.cellSize + this.borderSize);
-                    const cellX = this.offsetX - (clues.length - i) * (this.cellSize + this.borderSize) - this.gapSize;
+                    const cellY = this.offsetY + y * this.cellSize;
+                    const cellX = this.offsetX - (clues.length - i + 1) * this.cellSize - this.gapSize;
 
                     const clueGraphics = this.add.graphics();
                     clueGraphics.fillStyle(clue.color, 1);
@@ -94,13 +94,13 @@ export default class Game extends Phaser.Scene {
                 }
             }
 
-            //column clues
+            // Draw column clues
             for (let x = 0; x < this.colClues.length; x++) {
                 const clues = this.colClues[x];
                 for (let i = 0; i < clues.length; i++) {
                     const clue = clues[i];
-                    const cellX = this.offsetX + x * (this.cellSize + this.borderSize);
-                    const cellY = this.offsetY - (clues.length - i) * (this.cellSize + this.borderSize) - this.gapSize;
+                    const cellX = this.offsetX + x * this.cellSize;
+                    const cellY = this.offsetY - (clues.length - i + 1) * this.cellSize - this.gapSize;
 
                     const clueGraphics = this.add.graphics();
                     clueGraphics.fillStyle(clue.color, 1);
@@ -124,14 +124,12 @@ export default class Game extends Phaser.Scene {
                     const b = data[index + 2];
                     const a = data[index + 3] / 255;
 
-                    const cellX = this.offsetX + x * (this.cellSize + this.borderSize);
-                    const cellY = this.offsetY + y * (this.cellSize + this.borderSize);
+                    const cellX = this.offsetX + x * this.cellSize;
+                    const cellY = this.offsetY + y * this.cellSize;
 
                     const graphics = this.add.graphics();
                     graphics.fillStyle(Phaser.Display.Color.GetColor(r, g, b), a);
                     graphics.fillRect(cellX, cellY, this.cellSize, this.cellSize);
-                    graphics.lineStyle(this.borderSize, 0x000000);
-                    graphics.strokeRect(cellX, cellY, this.cellSize, this.cellSize);
 
                     row.push(graphics);
 
@@ -147,13 +145,26 @@ export default class Game extends Phaser.Scene {
                             this.currentColor = Phaser.Display.Color.GetColor(255, 255, 255);
                             graphics.fillStyle(this.currentColor, 1);
                             graphics.fillRect(cellX, cellY, this.cellSize, this.cellSize);
-                            graphics.lineStyle(this.borderSize, 0x000000);
-                            graphics.strokeRect(cellX, cellY, this.cellSize, this.cellSize);
                         }
                     });
                 }
                 this.cellGraphics.push(row);
             }
+
+            //grid lines
+            const gridGraphics = this.add.graphics();
+            gridGraphics.lineStyle(this.borderSize, 0x000000);
+            for (let x = 0; x <= canvas.width; x++) {
+                const lineX = this.offsetX + x * this.cellSize;
+                gridGraphics.moveTo(lineX, this.offsetY);
+                gridGraphics.lineTo(lineX, this.offsetY + gridHeight);
+            }
+            for (let y = 0; y <= canvas.height; y++) {
+                const lineY = this.offsetY + y * this.cellSize;
+                gridGraphics.moveTo(this.offsetX, lineY);
+                gridGraphics.lineTo(this.offsetX + gridWidth, lineY);
+            }
+            gridGraphics.strokePath();
 
             //border around game grid
             const borderGraphics = this.add.graphics();
@@ -237,15 +248,15 @@ export default class Game extends Phaser.Scene {
     }
 
     fillCell(pointer: Phaser.Input.Pointer) {
-        const pointerX = Math.floor((pointer.x - this.offsetX) / (this.cellSize + this.borderSize));
-        const pointerY = Math.floor((pointer.y - this.offsetY) / (this.cellSize + this.borderSize));
+        const pointerX = Math.floor((pointer.x - this.offsetX) / this.cellSize);
+        const pointerY = Math.floor((pointer.y - this.offsetY) / this.cellSize);
 
         if (pointerX < 0 || pointerX >= this.cellGraphics[0].length || pointerY < 0 || pointerY >= this.cellGraphics.length) {
             return;
         }
 
-        const cellX = this.offsetX + pointerX * (this.cellSize + this.borderSize);
-        const cellY = this.offsetY + pointerY * (this.cellSize + this.borderSize);
+        const cellX = this.offsetX + pointerX * this.cellSize;
+        const cellY = this.offsetY + pointerY * this.cellSize;
 
         const graphics = this.cellGraphics[pointerY][pointerX];
 
