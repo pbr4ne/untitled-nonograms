@@ -13,6 +13,7 @@ export default class Game extends Phaser.Scene {
     private cellGraphics: Phaser.GameObjects.Graphics[][] = [];
     private rowClues: { color: number, count: number }[][] = [];
     private colClues: { color: number, count: number }[][] = [];
+    private colorPalette: Phaser.GameObjects.Graphics[] = [];
 
     constructor() {
         super({ key: 'Game' });
@@ -74,6 +75,10 @@ export default class Game extends Phaser.Scene {
 
             this.calculateClues(canvas.width, canvas.height, data);
 
+            const uniqueColors = this.extractUniqueColors(data);
+
+            this.drawColorPalette(uniqueColors);
+
             //row clues
             for (let y = 0; y < this.rowClues.length; y++) {
                 const clues = this.rowClues[y];
@@ -94,7 +99,7 @@ export default class Game extends Phaser.Scene {
                 }
             }
 
-            // Draw column clues
+            //column clues
             for (let x = 0; x < this.colClues.length; x++) {
                 const clues = this.colClues[x];
                 for (let i = 0; i < clues.length; i++) {
@@ -142,7 +147,6 @@ export default class Game extends Phaser.Scene {
                             graphics.lineStyle(this.borderSize, 0x000000);
                             graphics.strokeRect(cellX, cellY, this.cellSize, this.cellSize);
                         } else {
-                            this.currentColor = Phaser.Display.Color.GetColor(255, 255, 255);
                             graphics.fillStyle(this.currentColor, 1);
                             graphics.fillRect(cellX, cellY, this.cellSize, this.cellSize);
                         }
@@ -179,6 +183,46 @@ export default class Game extends Phaser.Scene {
         } else {
             console.error('Unable to get 2D context from canvas');
         }
+    }
+
+    extractUniqueColors(data: Uint8ClampedArray): number[] {
+        const uniqueColors = new Set<number>();
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const a = data[i + 3];
+            if (a > 0) {
+                const color = Phaser.Display.Color.GetColor(r, g, b);
+                uniqueColors.add(color);
+            }
+        }
+        return Array.from(uniqueColors);
+    }
+
+    drawColorPalette(colors: number[]) {
+        const paletteSize = 40;
+        const paletteMargin = 10;
+        const startX = this.gapSize + 10;
+        const startY = this.sys.game.config.height as number - paletteSize - paletteMargin;
+
+        colors.forEach((color, index) => {
+            const x = startX + (index * (paletteSize + paletteMargin));
+            const y = startY;
+
+            const paletteGraphics = this.add.graphics();
+            paletteGraphics.fillStyle(color, 1);
+            paletteGraphics.fillRect(x, y, paletteSize, paletteSize);
+            paletteGraphics.lineStyle(this.borderSize, 0x000000);
+            paletteGraphics.strokeRect(x, y, paletteSize, paletteSize);
+
+            paletteGraphics.setInteractive(new Phaser.Geom.Rectangle(x, y, paletteSize, paletteSize), Phaser.Geom.Rectangle.Contains);
+            paletteGraphics.on('pointerdown', () => {
+                this.currentColor = color;
+            });
+
+            this.colorPalette.push(paletteGraphics);
+        });
     }
 
     calculateClues(width: number, height: number, data: Uint8ClampedArray) {
