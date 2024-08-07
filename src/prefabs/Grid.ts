@@ -8,7 +8,7 @@ export default class Grid {
     private offsetX: number;
     private offsetY: number;
     public cellGraphics: Phaser.GameObjects.Graphics[][] = [];
-    public cellColors: number[][] = [];
+    public cellColors: (number | null)[][] = [];
     private gridGraphics?: Phaser.GameObjects.Graphics;
 
     constructor(scene: Phaser.Scene, cellSize: number, borderSize: number, gridBorderThickness: number, offsetX: number, offsetY: number) {
@@ -21,7 +21,7 @@ export default class Grid {
     }
 
     initializeGrid(width: number, height: number) {
-        this.cellColors = Array.from({ length: height }, () => Array(width).fill(0xffffff));
+        this.cellColors = Array.from({ length: height }, () => Array(width).fill(null));
         for (let y = 0; y < height; y++) {
             const row: Phaser.GameObjects.Graphics[] = [];
             for (let x = 0; x < width; x++) {
@@ -65,7 +65,7 @@ export default class Grid {
             graphics.fillStyle(color, 1).fillRect(cellX, cellY, this.cellSize, this.cellSize);
             this.cellColors[y][x] = color;
         } else {
-            this.cellColors[y][x] = 0;
+            this.cellColors[y][x] = null;
         }
     }
 

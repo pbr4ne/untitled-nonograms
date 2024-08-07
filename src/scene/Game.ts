@@ -121,12 +121,11 @@ export default class Game extends Phaser.Scene {
                 const [r, g, b, a] = data.slice(index, index + 4);
                 const color = Phaser.Display.Color.GetColor(r, g, b);
 
-                if (color === 0) {
-                    continue;
+                if (a === 0 && this.grid.cellColors[y][x] !== null) {
+                    return false;
                 }
-                if ((a > 0 && this.grid.cellColors[y][x] === 0xffffff) || (a <= 0 && this.grid.cellColors[y][x] !== color) || (a === 0 && this.grid.cellColors[y][x] !== 0)) {
-                    console.log(x, y, color, this.grid.cellColors[y][x]);
-                    console.log("false");
+
+                if (a > 0 && (this.grid.cellColors[y][x] === null || this.grid.cellColors[y][x] !== color)) {
                     return false;
                 }
             }
