@@ -91,7 +91,7 @@ export default class Game extends Phaser.Scene {
         const currentColor = this.palette?.getCurrentColor() || 0xffffff;
 
         if (pointer.rightButtonDown()) {
-            this.grid.fillCell(pointerX, pointerY, 0xffffff);
+            this.grid.fillCell(pointerX, pointerY, null);
         } else {
             this.grid.fillCell(pointerX, pointerY, currentColor);
         }
@@ -124,7 +124,7 @@ export default class Game extends Phaser.Scene {
                 if (color === 0) {
                     continue;
                 }
-                if ((a > 0 && this.grid.cellColors[y][x] === 0xffffff) || (a <= 0 && this.grid.cellColors[y][x] !== color) || (a === 0 && this.grid.cellColors[y][x] !== 0xffffff)) {
+                if ((a > 0 && this.grid.cellColors[y][x] === 0xffffff) || (a <= 0 && this.grid.cellColors[y][x] !== color) || (a === 0 && this.grid.cellColors[y][x] !== 0)) {
                     console.log(x, y, color, this.grid.cellColors[y][x]);
                     console.log("false");
                     return false;
@@ -146,7 +146,7 @@ export default class Game extends Phaser.Scene {
                 const graphics = this.grid.cellGraphics[y][x];
                 graphics.clear();
                 const color = this.grid.cellColors[y][x];
-                if (color !== 0xffffff) {
+                if (color !== 0) {
                     graphics.fillStyle(color, 1).fillRect(this.offsetX + x * this.cellSize, this.offsetY + y * this.cellSize, this.cellSize, this.cellSize);
                 }
             }

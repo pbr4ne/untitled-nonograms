@@ -55,13 +55,19 @@ export default class Grid {
         );
     }
 
-    fillCell(x: number, y: number, color: number) {
+    fillCell(x: number, y: number, color: number | null) {
         const cellX = this.offsetX + x * this.cellSize;
         const cellY = this.offsetY + y * this.cellSize;
         const graphics = this.cellGraphics[y][x];
-        graphics.clear().fillStyle(color, 1).fillRect(cellX, cellY, this.cellSize, this.cellSize)
-            .lineStyle(this.borderSize, 0x000000).strokeRect(cellX, cellY, this.cellSize, this.cellSize);
-        this.cellColors[y][x] = color;
+        graphics.clear();
+
+        if (color !== null) {
+            graphics.fillStyle(color, 1).fillRect(cellX, cellY, this.cellSize, this.cellSize)
+                .lineStyle(this.borderSize, 0x000000).strokeRect(cellX, cellY, this.cellSize, this.cellSize);
+            this.cellColors[y][x] = color;
+        } else {
+            this.cellColors[y][x] = 0;
+        }
     }
 
     clearGrid() {
