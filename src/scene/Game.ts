@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
 import Grid from '../prefabs/Grid';
 import Clue from '../prefabs/Clue';
+import Palette from '../prefabs/Palette';
+import ImageAnalyzer from '../prefabs/ImageAnalyzer';
 
 export default class Game extends Phaser.Scene {
     private isDrawing: boolean = false;
-    private currentColor: number = 0xffffff;
     private cellSize: number = 30;
     private borderSize: number = 2;
     private gridBorderThickness: number = 5;
@@ -13,7 +14,8 @@ export default class Game extends Phaser.Scene {
     private offsetY: number = 0;
     private grid?: Grid;
     private clues?: Clue;
-    private colorPalette: Phaser.GameObjects.Graphics[] = [];
+    private palette?: Palette;
+    private imageAnalyzer?: ImageAnalyzer;
 
     constructor() {
         super({ key: 'Game' });
@@ -21,7 +23,9 @@ export default class Game extends Phaser.Scene {
 
     create() {
         this.cameras.main.setBackgroundColor('#8ecae6');
-        this.analyzeAndDrawImage('picture2');
+        this.imageAnalyzer = new ImageAnalyzer(this);
+        this.palette = new Palette(this, this.borderSize);
+        this.analyzeAndDrawImage('picture1');
         this.input.mouse?.disableContextMenu();
         this.setupInputEvents();
     }
@@ -43,33 +47,14 @@ export default class Game extends Phaser.Scene {
     }
 
     private analyzeAndDrawImage(key: string) {
-        const texture = this.textures.get(key);
-        if (!texture?.source[0]?.image) {
-            console.error('Invalid texture source');
-            return;
-        }
-
-        const imageElement = texture.source[0].image as HTMLImageElement;
-        const [canvas, context] = this.createCanvasAndContext(imageElement);
-
-        if (context) {
-            context.drawImage(imageElement, 0, 0);
-            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-            this.initializeGrid(imageData, canvas.width, canvas.height);
-        } else {
-            console.error('Unable to get 2D context from canvas');
+        const analysis = this.imageAnalyzer?.analyzeImage(key);
+        if (analysis) {
+            const { data, width, height } = analysis;
+            this.initializeGrid(data, width, height);
         }
     }
 
-    private createCanvasAndContext(imageElement: HTMLImageElement): [HTMLCanvasElement, CanvasRenderingContext2D | null] {
-        const canvas = document.createElement('canvas');
-        canvas.width = imageElement.width;
-        canvas.height = imageElement.height;
-        const context = canvas.getContext('2d');
-        return [canvas, context];
-    }
-
-    private initializeGrid(imageData: ImageData, width: number, height: number) {
+    private initializeGrid(data: Uint8ClampedArray, width: number, height: number) {
         const screenWidth = this.sys.game.config.width as number;
         const screenHeight = this.sys.game.config.height as number;
         const maxGridWidth = screenWidth - this.gapSize * 2 - this.gridBorderThickness * 2;
@@ -84,55 +69,15 @@ export default class Game extends Phaser.Scene {
         this.offsetX = (screenWidth - gridWidth) / 2;
         this.offsetY = (screenHeight - gridHeight) / 2;
 
-        const uniqueColors = this.extractUniqueColors(imageData.data);
-        this.drawColorPalette(uniqueColors);
+        const uniqueColors = this.imageAnalyzer?.extractUniqueColors(data) || [];
+        this.palette?.drawColorPalette(uniqueColors, this.gapSize);
 
         this.grid = new Grid(this, this.cellSize, this.borderSize, this.gridBorderThickness, this.offsetX, this.offsetY);
         this.grid.initializeGrid(width, height);
 
         this.clues = new Clue(this, this.cellSize, this.borderSize, this.offsetX, this.offsetY);
-        this.clues.generateClues(width, height, imageData.data);
+        this.clues.generateClues(width, height, data);
         this.clues.drawClues();
-    }
-
-    private extractUniqueColors(data: Uint8ClampedArray): number[] {
-        const uniqueColors = new Set<number>();
-        for (let i = 0; i < data.length; i += 4) {
-            const [r, g, b, a] = data.slice(i, i + 4);
-            if (a > 0) {
-                uniqueColors.add(Phaser.Display.Color.GetColor(r, g, b));
-            }
-        }
-        this.currentColor = Array.from(uniqueColors)[0];
-        return Array.from(uniqueColors);
-    }
-
-    private drawColorPalette(colors: number[]) {
-        const paletteSize = 40;
-        const paletteMargin = 10;
-        const startX = this.gapSize + 10;
-        const startY = (this.sys.game.config.height as number) - paletteSize - paletteMargin;
-    
-        colors.forEach((color, index) => {
-            const x = startX + (index * (paletteSize + paletteMargin));
-            const paletteGraphics = this.add.graphics()
-                .fillStyle(color, 1)
-                .fillRect(x, startY, paletteSize, paletteSize)
-                .lineStyle(this.borderSize, 0x000000)
-                .strokeRect(x, startY, paletteSize, paletteSize);
-    
-            paletteGraphics.setInteractive(new Phaser.Geom.Rectangle(x, startY, paletteSize, paletteSize), Phaser.Geom.Rectangle.Contains);
-    
-            if (paletteGraphics.input) {
-                paletteGraphics.input.cursor = 'pointer';
-            }
-    
-            paletteGraphics.on('pointerdown', () => {
-                this.currentColor = color;
-            });
-    
-            this.colorPalette.push(paletteGraphics);
-        });
     }
 
     private fillCell(pointer: Phaser.Input.Pointer) {
@@ -143,10 +88,12 @@ export default class Game extends Phaser.Scene {
             return;
         }
 
+        const currentColor = this.palette?.getCurrentColor() || 0xffffff;
+
         if (pointer.rightButtonDown()) {
             this.grid.fillCell(pointerX, pointerY, 0xffffff);
         } else {
-            this.grid.fillCell(pointerX, pointerY, this.currentColor);
+            this.grid.fillCell(pointerX, pointerY, currentColor);
         }
     }
 
@@ -154,13 +101,10 @@ export default class Game extends Phaser.Scene {
         const texture = this.textures.get('picture1');
         const imageElement = texture.source[0].image as HTMLImageElement;
 
-        const [canvas, context] = this.createCanvasAndContext(imageElement);
+        const imageData = this.imageAnalyzer?.getImageData(imageElement);
 
-        if (context) {
-            context.drawImage(imageElement, 0, 0);
-            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-
-            if (this.isGridComplete(imageData.data, canvas.width, canvas.height)) {
+        if (imageData) {
+            if (this.isGridComplete(imageData.data, imageData.width, imageData.height)) {
                 this.finalizeGrid();
             }
         }
