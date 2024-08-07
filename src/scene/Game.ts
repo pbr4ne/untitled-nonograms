@@ -11,9 +11,12 @@ export default class Game extends Phaser.Scene {
     private offsetX: number = 0;
     private offsetY: number = 0;
     private cellGraphics: Phaser.GameObjects.Graphics[][] = [];
+    private cellRectangles: Phaser.GameObjects.Rectangle[][] = [];
+    private cellColors: number[][] = [];
     private rowClues: { color: number, count: number }[][] = [];
     private colClues: { color: number, count: number }[][] = [];
     private colorPalette: Phaser.GameObjects.Graphics[] = [];
+    private gridGraphics?: Phaser.GameObjects.Graphics;
 
     constructor() {
         super({ key: 'Game' });
@@ -29,6 +32,7 @@ export default class Game extends Phaser.Scene {
         });
         this.input.on('pointerup', () => {
             this.isDrawing = false;
+            this.checkCompletion();
         });
         this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
             if (this.isDrawing) {
@@ -58,7 +62,6 @@ export default class Game extends Phaser.Scene {
             const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
 
-            //calculate the optimal cell size based on screen size and image size
             const screenWidth = this.sys.game.config.width as number;
             const screenHeight = this.sys.game.config.height as number;
             const maxGridWidth = screenWidth - this.gapSize * 2 - this.gridBorderThickness * 2;
@@ -72,25 +75,21 @@ export default class Game extends Phaser.Scene {
 
             this.calculateClues(canvas.width, canvas.height, data);
 
-            //calculate the maximum number of clues in each dimension
             const maxRowClues = Math.max(...this.rowClues.map(clues => clues.length));
             const maxColClues = Math.max(...this.colClues.map(clues => clues.length));
 
-            //calculate total width and height including clues
             const totalWidth = gridWidth + maxRowClues * this.cellSize + this.gapSize;
             const totalHeight = gridHeight + maxColClues * this.cellSize + this.gapSize;
 
-            //adjust offsets to center the entire grid including clues
             this.offsetX = (screenWidth - totalWidth) / 2 + maxRowClues * this.cellSize + this.gapSize;
             this.offsetY = (screenHeight - totalHeight) / 2 + maxColClues * this.cellSize + this.gapSize;
 
-            //extract unique colors from the image
             const uniqueColors = this.extractUniqueColors(data);
-
-            //draw the color palette
             this.drawColorPalette(uniqueColors);
 
-            //row clues
+            // Initialize cellColors with correct dimensions
+            this.cellColors = Array.from({ length: canvas.height }, () => Array(canvas.width).fill(0xffffff));
+
             for (let y = 0; y < this.rowClues.length; y++) {
                 const clues = this.rowClues[y];
                 for (let i = 0; i < clues.length; i++) {
@@ -110,7 +109,6 @@ export default class Game extends Phaser.Scene {
                 }
             }
 
-            //column clues
             for (let x = 0; x < this.colClues.length; x++) {
                 const clues = this.colClues[x];
                 for (let i = 0; i < clues.length; i++) {
@@ -130,16 +128,10 @@ export default class Game extends Phaser.Scene {
                 }
             }
 
-            //game grid
             for (let y = 0; y < canvas.height; y++) {
                 const row: Phaser.GameObjects.Graphics[] = [];
+                const rectRow: Phaser.GameObjects.Rectangle[] = [];
                 for (let x = 0; x < canvas.width; x++) {
-                    const index = (x + y * canvas.width) * 4;
-                    const r = data[index];
-                    const g = data[index + 1];
-                    const b = data[index + 2];
-                    const a = data[index + 3] / 255;
-
                     const cellX = this.offsetX + x * this.cellSize;
                     const cellY = this.offsetY + y * this.cellSize;
 
@@ -156,31 +148,36 @@ export default class Game extends Phaser.Scene {
                             graphics.clear();
                             graphics.lineStyle(this.borderSize, 0x000000);
                             graphics.strokeRect(cellX, cellY, this.cellSize, this.cellSize);
+                            this.cellColors[y][x] = 0xffffff;
                         } else {
                             graphics.fillStyle(this.currentColor, 1);
                             graphics.fillRect(cellX, cellY, this.cellSize, this.cellSize);
+                            graphics.lineStyle(this.borderSize, 0x000000);
+                            graphics.strokeRect(cellX, cellY, this.cellSize, this.cellSize);
+                            this.cellColors[y][x] = this.currentColor;
                         }
                     });
+
+                    rectRow.push(rect);
                 }
                 this.cellGraphics.push(row);
+                this.cellRectangles.push(rectRow);
             }
 
-            //grid lines
-            const gridGraphics = this.add.graphics();
-            gridGraphics.lineStyle(this.borderSize, 0x000000);
+            this.gridGraphics = this.add.graphics();
+            this.gridGraphics.lineStyle(this.borderSize, 0x000000);
             for (let x = 0; x <= canvas.width; x++) {
                 const lineX = this.offsetX + x * this.cellSize;
-                gridGraphics.moveTo(lineX, this.offsetY);
-                gridGraphics.lineTo(lineX, this.offsetY + gridHeight);
+                this.gridGraphics.moveTo(lineX, this.offsetY);
+                this.gridGraphics.lineTo(lineX, this.offsetY + gridHeight);
             }
             for (let y = 0; y <= canvas.height; y++) {
                 const lineY = this.offsetY + y * this.cellSize;
-                gridGraphics.moveTo(this.offsetX, lineY);
-                gridGraphics.lineTo(this.offsetX + gridWidth, lineY);
+                this.gridGraphics.moveTo(this.offsetX, lineY);
+                this.gridGraphics.lineTo(this.offsetX + gridWidth, lineY);
             }
-            gridGraphics.strokePath();
+            this.gridGraphics.strokePath();
 
-            //border around game grid
             const borderGraphics = this.add.graphics();
             borderGraphics.lineStyle(this.gridBorderThickness, 0x000000);
             borderGraphics.strokeRect(
@@ -189,7 +186,6 @@ export default class Game extends Phaser.Scene {
                 gridWidth + this.borderSize,
                 gridHeight + this.borderSize
             );
-
         } else {
             console.error('Unable to get 2D context from canvas');
         }
@@ -322,11 +318,88 @@ export default class Game extends Phaser.Scene {
             graphics.clear();
             graphics.lineStyle(this.borderSize, 0x000000);
             graphics.strokeRect(cellX, cellY, this.cellSize, this.cellSize);
+            this.cellColors[pointerY][pointerX] = 0xffffff;
         } else {
             graphics.fillStyle(this.currentColor, 1);
             graphics.fillRect(cellX, cellY, this.cellSize, this.cellSize);
             graphics.lineStyle(this.borderSize, 0x000000);
             graphics.strokeRect(cellX, cellY, this.cellSize, this.cellSize);
+            this.cellColors[pointerY][pointerX] = this.currentColor;
+        }
+    }
+
+    checkCompletion() {
+        const texture = this.textures.get('picture1');
+        const imageElement = texture.source[0].image as HTMLImageElement;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = imageElement.width;
+        canvas.height = imageElement.height;
+        const context = canvas.getContext('2d');
+
+        if (context) {
+            context.drawImage(imageElement, 0, 0);
+
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const index = (x + y * canvas.width) * 4;
+                    const r = data[index];
+                    const g = data[index + 1];
+                    const b = data[index + 2];
+                    const a = data[index + 3] / 255;
+                    const color = Phaser.Display.Color.GetColor(r, g, b);
+
+                    console.log('Checking', x, y, r, g, b, a, this.cellColors[y][x], color);
+
+                    //todo make sure this is right
+                    if (color === 0) {
+                        continue;
+                    }
+
+                    if (a > 0 && this.cellColors[y][x] === 0xffffff) {
+                        console.log("Missing cell",x, y, r, g, b, a, this.cellColors[y][x], color);
+                        return;
+                    }
+                    if (a <= 0 && this.cellColors[y][x] !== color) {
+                        console.log("Incorrectly filled", x, y, r, g, b, a, this.cellColors[y][x], color);
+                        return;
+                    }
+                    if (a === 0 && this.cellColors[y][x] !== 0xffffff) {
+                        console.log("something empty still", x, y, r, g, b, a, this.cellColors[y][x], color);
+                        return;
+                    }
+                }
+            }
+
+            if (this.gridGraphics) {
+                this.gridGraphics.clear();
+            }
+
+            for (let y = 0; y < this.cellGraphics.length; y++) {
+                for (let x = 0; x < this.cellGraphics[y].length; x++) {
+                    const graphics = this.cellGraphics[y][x];
+                    graphics.clear();
+                    const color = this.cellColors[y][x];
+                    if (color !== 0xffffff) {
+                        graphics.fillStyle(color, 1);
+                        graphics.fillRect(this.offsetX + x * this.cellSize, this.offsetY + y * this.cellSize, this.cellSize, this.cellSize);
+                    }
+                }
+            }
+
+            this.input.off('pointerdown');
+            this.input.off('pointerup');
+            this.input.off('pointermove');
+
+            for (let y = 0; y < this.cellRectangles.length; y++) {
+                for (let x = 0; x < this.cellRectangles[y].length; x++) {
+                    const rect = this.cellRectangles[y][x];
+                    rect.disableInteractive();
+                }
+            }
         }
     }
 }
