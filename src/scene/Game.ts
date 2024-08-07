@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import Grid from '../prefabs/Grid';
 
 export default class Game extends Phaser.Scene {
     private isDrawing: boolean = false;
@@ -9,13 +10,10 @@ export default class Game extends Phaser.Scene {
     private gapSize: number = 0;
     private offsetX: number = 0;
     private offsetY: number = 0;
-    private cellGraphics: Phaser.GameObjects.Graphics[][] = [];
-    private cellRectangles: Phaser.GameObjects.Rectangle[][] = [];
-    private cellColors: number[][] = [];
+    private grid?: Grid;
     private rowClues: { color: number, count: number }[][] = [];
     private colClues: { color: number, count: number }[][] = [];
     private colorPalette: Phaser.GameObjects.Graphics[] = [];
-    private gridGraphics?: Phaser.GameObjects.Graphics;
 
     constructor() {
         super({ key: 'Game' });
@@ -97,61 +95,9 @@ export default class Game extends Phaser.Scene {
         const uniqueColors = this.extractUniqueColors(imageData.data);
         this.drawColorPalette(uniqueColors);
 
-        this.initializeCellArrays(width, height);
+        this.grid = new Grid(this, this.cellSize, this.borderSize, this.gridBorderThickness, this.offsetX, this.offsetY);
+        this.grid.initializeGrid(width, height);
         this.drawClues();
-        this.drawGrid(width, height, gridWidth, gridHeight);
-    }
-
-    private initializeCellArrays(width: number, height: number) {
-        this.cellColors = Array.from({ length: height }, () => Array(width).fill(0xffffff));
-        for (let y = 0; y < height; y++) {
-            const row: Phaser.GameObjects.Graphics[] = [];
-            const rectRow: Phaser.GameObjects.Rectangle[] = [];
-            for (let x = 0; x < width; x++) {
-                const cellX = this.offsetX + x * this.cellSize;
-                const cellY = this.offsetY + y * this.cellSize;
-                const graphics = this.add.graphics().fillRect(cellX, cellY, this.cellSize, this.cellSize);
-                const rect = this.add.rectangle(cellX + this.cellSize / 2, cellY + this.cellSize / 2, this.cellSize, this.cellSize, 0xffffff, 0)
-                    .setInteractive({ useHandCursor: true });
-
-                rect.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.handleCellPointerDown(pointer, graphics, x, y, cellX, cellY));
-
-                row.push(graphics);
-                rectRow.push(rect);
-            }
-            this.cellGraphics.push(row);
-            this.cellRectangles.push(rectRow);
-        }
-    }
-
-    private handleCellPointerDown(pointer: Phaser.Input.Pointer, graphics: Phaser.GameObjects.Graphics, x: number, y: number, cellX: number, cellY: number) {
-        if (pointer.rightButtonDown()) {
-            graphics.clear().lineStyle(this.borderSize, 0x000000).strokeRect(cellX, cellY, this.cellSize, this.cellSize);
-            this.cellColors[y][x] = 0xffffff;
-        } else {
-            graphics.fillStyle(this.currentColor, 1).fillRect(cellX, cellY, this.cellSize, this.cellSize).lineStyle(this.borderSize, 0x000000).strokeRect(cellX, cellY, this.cellSize, this.cellSize);
-            this.cellColors[y][x] = this.currentColor;
-        }
-    }
-
-    private drawGrid(width: number, height: number, gridWidth: number, gridHeight: number) {
-        this.gridGraphics = this.add.graphics().lineStyle(this.borderSize, 0x000000);
-        for (let x = 0; x <= width; x++) {
-            const lineX = this.offsetX + x * this.cellSize;
-            this.gridGraphics.moveTo(lineX, this.offsetY).lineTo(lineX, this.offsetY + gridHeight);
-        }
-        for (let y = 0; y <= height; y++) {
-            const lineY = this.offsetY + y * this.cellSize;
-            this.gridGraphics.moveTo(this.offsetX, lineY).lineTo(this.offsetX + gridWidth, lineY);
-        }
-        this.gridGraphics.strokePath();
-
-        this.add.graphics().lineStyle(this.gridBorderThickness, 0x000000).strokeRect(
-            this.offsetX - this.borderSize / 2,
-            this.offsetY - this.borderSize / 2,
-            gridWidth + this.borderSize,
-            gridHeight + this.borderSize
-        );
     }
 
     private extractUniqueColors(data: Uint8ClampedArray): number[] {
@@ -166,7 +112,7 @@ export default class Game extends Phaser.Scene {
         return Array.from(uniqueColors);
     }
 
-    drawColorPalette(colors: number[]) {
+    private drawColorPalette(colors: number[]) {
         const paletteSize = 40;
         const paletteMargin = 10;
         const startX = this.gapSize + 10;
@@ -260,21 +206,14 @@ export default class Game extends Phaser.Scene {
         const pointerX = Math.floor((pointer.x - this.offsetX) / this.cellSize);
         const pointerY = Math.floor((pointer.y - this.offsetY) / this.cellSize);
 
-        if (pointerX < 0 || pointerX >= this.cellGraphics[0].length || pointerY < 0 || pointerY >= this.cellGraphics.length) {
+        if (!this.grid || pointerX < 0 || pointerX >= this.grid.cellColors[0].length || pointerY < 0 || pointerY >= this.grid.cellColors.length) {
             return;
         }
 
-        const cellX = this.offsetX + pointerX * this.cellSize;
-        const cellY = this.offsetY + pointerY * this.cellSize;
-
-        const graphics = this.cellGraphics[pointerY][pointerX];
-
         if (pointer.rightButtonDown()) {
-            graphics.clear().lineStyle(this.borderSize, 0x000000).strokeRect(cellX, cellY, this.cellSize, this.cellSize);
-            this.cellColors[pointerY][pointerX] = 0xffffff;
+            this.grid.fillCell(pointerX, pointerY, 0xffffff);
         } else {
-            graphics.fillStyle(this.currentColor, 1).fillRect(cellX, cellY, this.cellSize, this.cellSize).lineStyle(this.borderSize, 0x000000).strokeRect(cellX, cellY, this.cellSize, this.cellSize);
-            this.cellColors[pointerY][pointerX] = this.currentColor;
+            this.grid.fillCell(pointerX, pointerY, this.currentColor);
         }
     }
 
@@ -295,6 +234,10 @@ export default class Game extends Phaser.Scene {
     }
 
     private isGridComplete(data: Uint8ClampedArray, width: number, height: number): boolean {
+        if (!this.grid) {
+            return false;
+        }
+
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 const index = (x + y * width) * 4;
@@ -304,8 +247,8 @@ export default class Game extends Phaser.Scene {
                 if (color === 0) {
                     continue;
                 }
-                if ((a > 0 && this.cellColors[y][x] === 0xffffff) || (a <= 0 && this.cellColors[y][x] !== color) || (a === 0 && this.cellColors[y][x] !== 0xffffff)) {
-                    console.log(x, y, color, this.cellColors[y][x]);
+                if ((a > 0 && this.grid.cellColors[y][x] === 0xffffff) || (a <= 0 && this.grid.cellColors[y][x] !== color) || (a === 0 && this.grid.cellColors[y][x] !== 0xffffff)) {
+                    console.log(x, y, color, this.grid.cellColors[y][x]);
                     console.log("false");
                     return false;
                 }
@@ -315,13 +258,17 @@ export default class Game extends Phaser.Scene {
     }
 
     private finalizeGrid() {
-        this.gridGraphics?.clear();
+        this.grid?.clearGrid();
 
-        for (let y = 0; y < this.cellGraphics.length; y++) {
-            for (let x = 0; x < this.cellGraphics[y].length; x++) {
-                const graphics = this.cellGraphics[y][x];
+        if (!this.grid) {
+            return;
+        }
+
+        for (let y = 0; y < this.grid.cellColors.length; y++) {
+            for (let x = 0; x < this.grid.cellColors[y].length; x++) {
+                const graphics = this.grid.cellGraphics[y][x];
                 graphics.clear();
-                const color = this.cellColors[y][x];
+                const color = this.grid.cellColors[y][x];
                 if (color !== 0xffffff) {
                     graphics.fillStyle(color, 1).fillRect(this.offsetX + x * this.cellSize, this.offsetY + y * this.cellSize, this.cellSize, this.cellSize);
                 }
@@ -331,11 +278,5 @@ export default class Game extends Phaser.Scene {
         this.input.off('pointerdown');
         this.input.off('pointerup');
         this.input.off('pointermove');
-
-        for (const rectRow of this.cellRectangles) {
-            for (const rect of rectRow) {
-                rect.disableInteractive();
-            }
-        }
     }
 }
