@@ -135,22 +135,11 @@ export default class Game extends Phaser.Scene {
     }
 
     private finalizeGrid() {
-        this.grid?.clearGrid();
-
         if (!this.grid) {
             return;
         }
 
-        for (let y = 0; y < this.grid.cellColors.length; y++) {
-            for (let x = 0; x < this.grid.cellColors[y].length; x++) {
-                const graphics = this.grid.cellGraphics[y][x];
-                graphics.clear();
-                const color = this.grid.cellColors[y][x];
-                if (color !== 0) {
-                    graphics.fillStyle(color, 1).fillRect(this.offsetX + x * this.cellSize, this.offsetY + y * this.cellSize, this.cellSize, this.cellSize);
-                }
-            }
-        }
+        this.grid.clearGridBorders();
 
         this.input.off('pointerdown');
         this.input.off('pointerup');

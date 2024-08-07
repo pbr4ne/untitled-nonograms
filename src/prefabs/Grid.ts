@@ -27,7 +27,7 @@ export default class Grid {
             for (let x = 0; x < width; x++) {
                 const cellX = this.offsetX + x * this.cellSize;
                 const cellY = this.offsetY + y * this.cellSize;
-                const graphics = this.scene.add.graphics().fillRect(cellX, cellY, this.cellSize, this.cellSize);
+                const graphics = this.scene.add.graphics();
                 row.push(graphics);
             }
             this.cellGraphics.push(row);
@@ -62,15 +62,14 @@ export default class Grid {
         graphics.clear();
 
         if (color !== null) {
-            graphics.fillStyle(color, 1).fillRect(cellX, cellY, this.cellSize, this.cellSize)
-                .lineStyle(this.borderSize, 0x000000).strokeRect(cellX, cellY, this.cellSize, this.cellSize);
+            graphics.fillStyle(color, 1).fillRect(cellX, cellY, this.cellSize, this.cellSize);
             this.cellColors[y][x] = color;
         } else {
             this.cellColors[y][x] = 0;
         }
     }
 
-    clearGrid() {
+    clearGridBorders() {
         if (this.gridGraphics) {
             this.gridGraphics.clear();
         }
