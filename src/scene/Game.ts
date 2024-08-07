@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import Grid from '../prefabs/Grid';
+import Clue from '../prefabs/Clue';
 
 export default class Game extends Phaser.Scene {
     private isDrawing: boolean = false;
@@ -11,8 +12,7 @@ export default class Game extends Phaser.Scene {
     private offsetX: number = 0;
     private offsetY: number = 0;
     private grid?: Grid;
-    private rowClues: { color: number, count: number }[][] = [];
-    private colClues: { color: number, count: number }[][] = [];
+    private clues?: Clue;
     private colorPalette: Phaser.GameObjects.Graphics[] = [];
 
     constructor() {
@@ -21,7 +21,7 @@ export default class Game extends Phaser.Scene {
 
     create() {
         this.cameras.main.setBackgroundColor('#8ecae6');
-        this.analyzeAndDrawImage('picture1');
+        this.analyzeAndDrawImage('picture2');
         this.input.mouse?.disableContextMenu();
         this.setupInputEvents();
     }
@@ -81,23 +81,18 @@ export default class Game extends Phaser.Scene {
         const gridWidth = width * this.cellSize;
         const gridHeight = height * this.cellSize;
 
-        this.calculateClues(width, height, imageData.data);
-
-        const maxRowClues = Math.max(...this.rowClues.map(clues => clues.length));
-        const maxColClues = Math.max(...this.colClues.map(clues => clues.length));
-
-        const totalWidth = gridWidth + maxRowClues * this.cellSize + this.gapSize;
-        const totalHeight = gridHeight + maxColClues * this.cellSize + this.gapSize;
-
-        this.offsetX = (screenWidth - totalWidth) / 2 + maxRowClues * this.cellSize + this.gapSize;
-        this.offsetY = (screenHeight - totalHeight) / 2 + maxColClues * this.cellSize + this.gapSize;
+        this.offsetX = (screenWidth - gridWidth) / 2;
+        this.offsetY = (screenHeight - gridHeight) / 2;
 
         const uniqueColors = this.extractUniqueColors(imageData.data);
         this.drawColorPalette(uniqueColors);
 
         this.grid = new Grid(this, this.cellSize, this.borderSize, this.gridBorderThickness, this.offsetX, this.offsetY);
         this.grid.initializeGrid(width, height);
-        this.drawClues();
+
+        this.clues = new Clue(this, this.cellSize, this.borderSize, this.offsetX, this.offsetY);
+        this.clues.generateClues(width, height, imageData.data);
+        this.clues.drawClues();
     }
 
     private extractUniqueColors(data: Uint8ClampedArray): number[] {
@@ -137,68 +132,6 @@ export default class Game extends Phaser.Scene {
             });
     
             this.colorPalette.push(paletteGraphics);
-        });
-    }
-
-    private calculateClues(width: number, height: number, data: Uint8ClampedArray) {
-        this.rowClues = this.generateClues(width, height, data, true);
-        this.colClues = this.generateClues(width, height, data, false);
-    }
-
-    private generateClues(width: number, height: number, data: Uint8ClampedArray, isRow: boolean) {
-        const clues: { color: number, count: number }[][] = [];
-        for (let i = 0; i < (isRow ? height : width); i++) {
-            const line: { color: number, count: number }[] = [];
-            let count = 0;
-            let currentColor = 0;
-            for (let j = 0; j < (isRow ? width : height); j++) {
-                const index = ((isRow ? j + i * width : i + j * width) * 4);
-                const [r, g, b, a] = data.slice(index, index + 4);
-                const color = Phaser.Display.Color.GetColor(r, g, b);
-
-                if (a > 0 && (count === 0 || color === currentColor)) {
-                    count++;
-                    currentColor = color;
-                } else {
-                    if (count > 0) line.push({ color: currentColor, count });
-                    currentColor = color;
-                    count = a > 0 ? 1 : 0;
-                }
-            }
-            if (count > 0) line.push({ color: currentColor, count });
-            clues.push(line);
-        }
-        return clues;
-    }
-
-    private calculateBrightness(color: number): number {
-        const r = (color >> 16) & 0xff;
-        const g = (color >> 8) & 0xff;
-        const b = color & 0xff;
-        return Math.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b);
-    }
-
-    private drawClues() {
-        this.drawClueSet(this.rowClues, true);
-        this.drawClueSet(this.colClues, false);
-    }
-
-    private drawClueSet(clues: { color: number, count: number }[][], isRow: boolean) {
-        clues.forEach((clueSet, i) => {
-            clueSet.forEach((clue, j) => {
-                const [cellX, cellY] = isRow ?
-                    [this.offsetX - (clueSet.length - j + 1) * this.cellSize - this.gapSize, this.offsetY + i * this.cellSize] :
-                    [this.offsetX + i * this.cellSize, this.offsetY - (clueSet.length - j + 1) * this.cellSize - this.gapSize];
-
-                const clueGraphics = this.add.graphics().fillStyle(clue.color, 1)
-                    .fillRect(cellX, cellY, this.cellSize, this.cellSize)
-                    .lineStyle(this.borderSize, 0x000000)
-                    .strokeRect(cellX, cellY, this.cellSize, this.cellSize);
-
-                const textColor = this.calculateBrightness(clue.color) < 128 ? '#ffffff' : '#000000';
-                this.add.text(cellX + this.cellSize / 2, cellY + this.cellSize / 2, clue.count.toString(), { color: textColor })
-                    .setOrigin(0.5);
-            });
         });
     }
 

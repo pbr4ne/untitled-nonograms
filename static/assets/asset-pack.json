@@ -5,6 +5,11 @@
                 "url": "assets/images/picture1.png",
                 "type": "image",
                 "key": "picture1"
+            },
+            {
+                "url": "assets/images/picture2.png",
+                "type": "image",
+                "key": "picture2"
             }
         ]
     },
