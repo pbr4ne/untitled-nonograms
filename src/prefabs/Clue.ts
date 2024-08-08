@@ -9,12 +9,12 @@ export default class Clue {
     public rowClues: { color: number, count: number }[][] = [];
     public colClues: { color: number, count: number }[][] = [];
 
-    constructor(scene: Phaser.Scene, cellSize: number, borderSize: number, offsetX: number, offsetY: number) {
+    constructor(scene: Phaser.Scene, cellSize: number, borderSize: number) {
         this.scene = scene;
         this.cellSize = cellSize;
         this.borderSize = borderSize;
-        this.offsetX = offsetX;
-        this.offsetY = offsetY;
+        this.offsetX = 0;
+        this.offsetY = 0;
     }
 
     generateClues(width: number, height: number, data: Uint8ClampedArray) {
@@ -77,5 +77,18 @@ export default class Clue {
         const g = (color >> 8) & 0xff;
         const b = color & 0xff;
         return Math.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b);
+    }
+
+    getMaxRowClueLength(): number {
+        return Math.max(...this.rowClues.map(clues => clues.length));
+    }
+
+    getMaxColClueLength(): number {
+        return Math.max(...this.colClues.map(clues => clues.length));
+    }
+
+    setOffsets(offsetX: number, offsetY: number) {
+        this.offsetX = offsetX;
+        this.offsetY = offsetY;
     }
 }

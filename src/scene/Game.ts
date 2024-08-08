@@ -66,8 +66,19 @@ export default class Game extends Phaser.Scene {
         const gridWidth = width * this.cellSize;
         const gridHeight = height * this.cellSize;
 
-        this.offsetX = (screenWidth - gridWidth) / 2;
-        this.offsetY = (screenHeight - gridHeight) / 2;
+        this.clues = new Clue(this, this.cellSize, this.borderSize);
+        this.clues.generateClues(width, height, data);
+
+        const maxRowClues = this.clues.getMaxRowClueLength();
+        const maxColClues = this.clues.getMaxColClueLength();
+
+        const totalWidth = gridWidth + maxRowClues * this.cellSize + this.gapSize;
+        const totalHeight = gridHeight + maxColClues * this.cellSize + this.gapSize;
+
+        this.offsetX = Math.max((screenWidth - totalWidth) / 2 + maxRowClues * this.cellSize + this.gapSize, 0);
+        this.offsetY = Math.max((screenHeight - totalHeight) / 2 + maxColClues * this.cellSize + this.gapSize, 0);
+
+        this.clues.setOffsets(this.offsetX, this.offsetY);
 
         const uniqueColors = this.imageAnalyzer?.extractUniqueColors(data) || [];
         this.palette?.drawColorPalette(uniqueColors, this.gapSize);
@@ -75,8 +86,6 @@ export default class Game extends Phaser.Scene {
         this.grid = new Grid(this, this.cellSize, this.borderSize, this.gridBorderThickness, this.offsetX, this.offsetY);
         this.grid.initializeGrid(width, height);
 
-        this.clues = new Clue(this, this.cellSize, this.borderSize, this.offsetX, this.offsetY);
-        this.clues.generateClues(width, height, data);
         this.clues.drawClues();
     }
 
