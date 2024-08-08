@@ -6,6 +6,7 @@ import ImageAnalyzer from '../prefabs/ImageAnalyzer';
 
 export default class Game extends Phaser.Scene {
     private isDrawing: boolean = false;
+    private drawType: 'fill' | 'mark' | 'clear' = 'clear';
     private cellSize: number = 30;
     private borderSize: number = 2;
     private gridBorderThickness: number = 5;
@@ -34,6 +35,7 @@ export default class Game extends Phaser.Scene {
     private setupInputEvents() {
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             this.isDrawing = true;
+            this.determineDrawType(pointer);
             this.fillCell(pointer);
         });
         this.input.on('pointerup', () => {
@@ -45,6 +47,31 @@ export default class Game extends Phaser.Scene {
                 this.fillCell(pointer);
             }
         });
+    }
+
+    private determineDrawType(pointer: Phaser.Input.Pointer) {
+        const pointerX = Math.floor((pointer.x - this.offsetX) / this.cellSize);
+        const pointerY = Math.floor((pointer.y - this.offsetY) / this.cellSize);
+
+        if (!this.grid || pointerX < 0 || pointerX >= this.grid.cellColors[0].length || pointerY < 0 || pointerY >= this.grid.cellColors.length) {
+            return;
+        }
+
+        const currentState = this.grid.cellStates[pointerY][pointerX];
+
+        if (pointer.rightButtonDown()) {
+            if (currentState === 'empty' || currentState === 'filled') {
+                this.drawType = 'mark';
+            } else if (currentState === 'marked') {
+                this.drawType = 'clear';
+            }
+        } else {
+            if (currentState === 'empty' || currentState === 'marked') {
+                this.drawType = 'fill';
+            } else if (currentState === 'filled') {
+                this.drawType = 'clear';
+            }
+        }
     }
 
     private analyzeAndDrawImage(key: string) {
@@ -100,10 +127,12 @@ export default class Game extends Phaser.Scene {
 
         const currentColor = this.palette?.getCurrentColor() || 0xffffff;
 
-        if (pointer.rightButtonDown()) {
-            this.grid.fillCell(pointerX, pointerY, null);
-        } else {
+        if (this.drawType === 'fill') {
             this.grid.fillCell(pointerX, pointerY, currentColor);
+        } else if (this.drawType === 'mark') {
+            this.grid.markCell(pointerX, pointerY);
+        } else if (this.drawType === 'clear') {
+            this.grid.clearCell(pointerX, pointerY);
         }
     }
 
@@ -146,6 +175,15 @@ export default class Game extends Phaser.Scene {
     private finalizeGrid() {
         if (!this.grid) {
             return;
+        }
+
+        //clear the x
+        for (let y = 0; y < this.grid.cellColors.length; y++) {
+            for (let x = 0; x < this.grid.cellColors[y].length; x++) {
+                if (this.grid.cellStates[y][x] === 'marked') {
+                    this.grid.clearCell(x, y);
+                }
+            }
         }
 
         this.grid.clearGridBorders();

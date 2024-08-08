@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 
+type CellState = 'empty' | 'filled' | 'marked';
+
 export default class Grid {
     private scene: Phaser.Scene;
     private cellSize: number;
@@ -9,6 +11,7 @@ export default class Grid {
     private offsetY: number;
     public cellGraphics: Phaser.GameObjects.Graphics[][] = [];
     public cellColors: (number | null)[][] = [];
+    public cellStates: CellState[][] = [];
     private gridGraphics?: Phaser.GameObjects.Graphics;
 
     constructor(scene: Phaser.Scene, cellSize: number, borderSize: number, gridBorderThickness: number, offsetX: number, offsetY: number) {
@@ -22,6 +25,7 @@ export default class Grid {
 
     initializeGrid(width: number, height: number) {
         this.cellColors = Array.from({ length: height }, () => Array(width).fill(null));
+        this.cellStates = Array.from({ length: height }, () => Array(width).fill('empty'));
         for (let y = 0; y < height; y++) {
             const row: Phaser.GameObjects.Graphics[] = [];
             for (let x = 0; x < width; x++) {
@@ -64,9 +68,38 @@ export default class Grid {
         if (color !== null) {
             graphics.fillStyle(color, 1).fillRect(cellX, cellY, this.cellSize, this.cellSize);
             this.cellColors[y][x] = color;
+            this.cellStates[y][x] = 'filled';
         } else {
             this.cellColors[y][x] = null;
+            this.cellStates[y][x] = 'empty';
         }
+    }
+
+    markCell(x: number, y: number) {
+        const cellX = this.offsetX + x * this.cellSize;
+        const cellY = this.offsetY + y * this.cellSize;
+        const graphics = this.cellGraphics[y][x];
+        graphics.clear();
+
+        graphics.lineStyle(2, 0x000000, 1)
+            .moveTo(cellX, cellY)
+            .lineTo(cellX + this.cellSize, cellY + this.cellSize)
+            .moveTo(cellX + this.cellSize, cellY)
+            .lineTo(cellX, cellY + this.cellSize)
+            .strokePath();
+
+        this.cellColors[y][x] = null;
+        this.cellStates[y][x] = 'marked';
+    }
+
+    clearCell(x: number, y: number) {
+        const cellX = this.offsetX + x * this.cellSize;
+        const cellY = this.offsetY + y * this.cellSize;
+        const graphics = this.cellGraphics[y][x];
+        graphics.clear();
+
+        this.cellColors[y][x] = null;
+        this.cellStates[y][x] = 'empty';
     }
 
     clearGridBorders() {
