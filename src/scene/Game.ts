@@ -16,6 +16,7 @@ export default class Game extends Phaser.Scene {
     private clues?: Clue;
     private palette?: Palette;
     private imageAnalyzer?: ImageAnalyzer;
+    private level: string = "picture2";
 
     constructor() {
         super({ key: 'Game' });
@@ -25,7 +26,7 @@ export default class Game extends Phaser.Scene {
         this.cameras.main.setBackgroundColor('#8ecae6');
         this.imageAnalyzer = new ImageAnalyzer(this);
         this.palette = new Palette(this, this.borderSize);
-        this.analyzeAndDrawImage('picture1');
+        this.analyzeAndDrawImage(this.level);
         this.input.mouse?.disableContextMenu();
         this.setupInputEvents();
     }
@@ -107,7 +108,7 @@ export default class Game extends Phaser.Scene {
     }
 
     private checkCompletion() {
-        const texture = this.textures.get('picture1');
+        const texture = this.textures.get(this.level);
         const imageElement = texture.source[0].image as HTMLImageElement;
 
         const imageData = this.imageAnalyzer?.getImageData(imageElement);
