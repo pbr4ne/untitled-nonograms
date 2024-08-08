@@ -29,6 +29,7 @@ export default class Palette {
                 .strokeRect(x, startY, cellSize, cellSize);
 
             paletteGraphics.setInteractive(new Phaser.Geom.Rectangle(x, startY, cellSize, cellSize), Phaser.Geom.Rectangle.Contains);
+            paletteGraphics.input!.cursor = 'pointer';
 
             paletteGraphics.on('pointerdown', () => {
                 this.currentColorIndex = index;

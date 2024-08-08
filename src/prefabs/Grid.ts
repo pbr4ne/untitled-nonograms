@@ -32,6 +32,8 @@ export default class Grid {
                 const cellX = this.offsetX + x * this.cellSize;
                 const cellY = this.offsetY + y * this.cellSize;
                 const graphics = this.scene.add.graphics();
+                graphics.setInteractive(new Phaser.Geom.Rectangle(cellX, cellY, this.cellSize, this.cellSize), Phaser.Geom.Rectangle.Contains);
+                graphics.input!.cursor = 'pointer';
                 row.push(graphics);
             }
             this.cellGraphics.push(row);
