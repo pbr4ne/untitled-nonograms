@@ -69,7 +69,13 @@ export default class Game extends Phaser.Scene {
             if (currentState === 'empty' || currentState === 'marked') {
                 this.drawType = 'fill';
             } else if (currentState === 'filled') {
-                this.drawType = 'clear';
+                const currentColor = this.grid.cellColors[pointerY][pointerX];
+                const newColor = this.palette?.getCurrentColor() || 0xffffff;
+                if (currentColor !== newColor) {
+                    this.drawType = 'fill';
+                } else {
+                    this.drawType = 'clear';
+                }
             }
         }
     }
