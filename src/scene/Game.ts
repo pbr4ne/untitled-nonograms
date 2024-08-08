@@ -10,7 +10,7 @@ export default class Game extends Phaser.Scene {
     private cellSize: number = 30;
     private borderSize: number = 2;
     private gridBorderThickness: number = 5;
-    private gapSize: number = 0;
+    private gapSize: number = 10;
     private offsetX: number = 0;
     private offsetY: number = 0;
     private grid?: Grid;
@@ -26,7 +26,7 @@ export default class Game extends Phaser.Scene {
     create() {
         this.cameras.main.setBackgroundColor('#8ecae6');
         this.imageAnalyzer = new ImageAnalyzer(this);
-        this.palette = new Palette(this, this.borderSize);
+        this.palette = new Palette(this, this.borderSize, this.gapSize);
         this.analyzeAndDrawImage(this.level);
         this.input.mouse?.disableContextMenu();
         this.setupInputEvents();
@@ -115,7 +115,7 @@ export default class Game extends Phaser.Scene {
         this.clues.setOffsets(this.offsetX, this.offsetY);
 
         const uniqueColors = this.imageAnalyzer?.extractUniqueColors(data) || [];
-        this.palette?.drawColorPalette(uniqueColors, this.gapSize);
+        this.palette?.drawColorPalette(uniqueColors, this.cellSize);
 
         this.grid = new Grid(this, this.cellSize, this.borderSize, this.gridBorderThickness, this.offsetX, this.offsetY);
         this.grid.initializeGrid(width, height);
