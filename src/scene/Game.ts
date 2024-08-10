@@ -58,6 +58,7 @@ export default class Game extends Phaser.Scene {
         }
 
         const currentState = this.grid.cellStates[pointerY][pointerX];
+        const selectedColor = this.palette?.getCurrentColor();
 
         if (pointer.rightButtonDown()) {
             if (currentState === 'empty' || currentState === 'filled') {
@@ -67,11 +68,12 @@ export default class Game extends Phaser.Scene {
             }
         } else {
             if (currentState === 'empty' || currentState === 'marked') {
-                this.drawType = 'fill';
+                if (selectedColor !== null) {
+                    this.drawType = 'fill';
+                }
             } else if (currentState === 'filled') {
                 const currentColor = this.grid.cellColors[pointerY][pointerX];
-                const newColor = this.palette?.getCurrentColor() || 0xffffff;
-                if (currentColor !== newColor) {
+                if (selectedColor !== null && currentColor !== selectedColor) {
                     this.drawType = 'fill';
                 } else {
                     this.drawType = 'clear';

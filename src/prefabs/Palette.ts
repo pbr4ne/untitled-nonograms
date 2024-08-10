@@ -1,5 +1,3 @@
-import Phaser from 'phaser';
-
 export default class Palette {
     private scene: Phaser.Scene;
     private borderSize: number;
@@ -37,14 +35,19 @@ export default class Palette {
             });
 
             this.colorGraphics.push(paletteGraphics);
+
+            if (index === 0) {
+                this.currentColorIndex = 0;
+                this.updateHighlight(x, startY, cellSize);
+            }
         });
     }
 
-    getCurrentColor(): number {
+    getCurrentColor(): number | null {
         if (this.currentColorIndex >= 0 && this.currentColorIndex < this.colors.length) {
             return this.colors[this.currentColorIndex];
         }
-        return 0xffffff;
+        return null;
     }
 
     private updateHighlight(x: number, y: number, size: number) {
