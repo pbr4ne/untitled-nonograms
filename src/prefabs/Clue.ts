@@ -66,8 +66,13 @@ export default class Clue {
                     .strokeRect(cellX, cellY, this.cellSize, this.cellSize);
 
                 const textColor = this.calculateBrightness(clue.color) < 128 ? '#ffffff' : '#000000';
-                this.scene.add.text(cellX + this.cellSize / 2, cellY + this.cellSize / 2, clue.count.toString(), { color: textColor })
-                    .setOrigin(0.5);
+                const fontSize = this.cellSize * 0.50;
+                this.scene.add.text(cellX + this.cellSize / 2, cellY + this.cellSize / 2, clue.count.toString(), { 
+                    color: textColor,
+                    fontSize: `${fontSize}px`,
+                    fontFamily: 'Noto Sans Mono',
+                })
+                .setOrigin(0.5);
             });
         });
     }
