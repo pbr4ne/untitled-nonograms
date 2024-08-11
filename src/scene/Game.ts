@@ -17,7 +17,7 @@ export default class Game extends Phaser.Scene {
     private clues?: Clue;
     private palette?: Palette;
     private imageAnalyzer?: ImageAnalyzer;
-    private level: string = "picture2";
+    private level: string = "picture1";
 
     constructor() {
         super({ key: 'Game' });
