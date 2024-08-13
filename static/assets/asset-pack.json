@@ -10,6 +10,21 @@
                 "url": "assets/images/picture2.png",
                 "type": "image",
                 "key": "picture2"
+            },
+            {
+                "url": "assets/images/picture3.png",
+                "type": "image",
+                "key": "picture3"
+            },
+            {
+                "url": "assets/images/picture4.png",
+                "type": "image",
+                "key": "picture4"
+            },
+            {
+                "url": "assets/images/picture5.png",
+                "type": "image",
+                "key": "picture5"
             }
         ]
     },
