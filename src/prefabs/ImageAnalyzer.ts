@@ -38,6 +38,36 @@ export default class ImageAnalyzer {
         return Array.from(uniqueColors);
     }
 
+    getMostCommonColor(data: Uint8ClampedArray): number {
+        const colorCount = new Map<number, number>();
+
+        for (let i = 0; i < data.length; i += 4) {
+            const [r, g, b, a] = data.slice(i, i + 4);
+            if (a > 0) {
+                const color = Phaser.Display.Color.GetColor(r, g, b);
+                colorCount.set(color, (colorCount.get(color) || 0) + 1);
+            }
+        }
+
+        let mostCommonColor = 0;
+        let maxCount = 0;
+
+        for (const [color, count] of colorCount) {
+            if (count > maxCount) {
+                maxCount = count;
+                mostCommonColor = color;
+            }
+        }
+
+        return mostCommonColor;
+    }
+
+    getComplementaryColor(color: number): number {
+        const { r, g, b } = Phaser.Display.Color.IntegerToRGB(color);
+        const complementaryColor = Phaser.Display.Color.GetColor(255 - r, 255 - g, 255 - b);
+        return complementaryColor;
+    }
+
     getImageData(imageElement: HTMLImageElement): ImageData | null {
         const [canvas, context] = this.createCanvasAndContext(imageElement);
         if (context) {

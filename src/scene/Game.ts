@@ -24,13 +24,29 @@ export default class Game extends Phaser.Scene {
     }
 
     create() {
-        this.cameras.main.setBackgroundColor('#8ecae6');
         this.imageAnalyzer = new ImageAnalyzer(this);
         this.palette = new Palette(this, this.borderSize, this.gapSize);
+    
+        const analysis = this.imageAnalyzer.analyzeImage(this.level);
+        if (analysis) {
+            const mostCommonColor = this.imageAnalyzer.getMostCommonColor(analysis.data);
+            const complementaryColor = this.imageAnalyzer.getComplementaryColor(mostCommonColor);
+    
+            const hsvColor = Phaser.Display.Color.RGBToHSV(
+                Phaser.Display.Color.IntegerToRGB(complementaryColor).r,
+                Phaser.Display.Color.IntegerToRGB(complementaryColor).g,
+                Phaser.Display.Color.IntegerToRGB(complementaryColor).b
+            );
+    
+            const lighterColor = Phaser.Display.Color.HSVToRGB(hsvColor.h, hsvColor.s * 0.2, Math.min(hsvColor.v + 0.2, 1));
+    
+            this.cameras.main.setBackgroundColor(lighterColor.color);
+        }
+    
         this.analyzeAndDrawImage(this.level);
         this.input.mouse?.disableContextMenu();
         this.setupInputEvents();
-    }
+    }    
 
     private setupInputEvents() {
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
