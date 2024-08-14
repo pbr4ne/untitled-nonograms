@@ -14,21 +14,23 @@ export default class Grid {
     public cellStates: CellState[][] = [];
     private gridGraphics?: Phaser.GameObjects.Graphics;
 
-    constructor(scene: Phaser.Scene, cellSize: number, borderSize: number, gridBorderThickness: number, offsetX: number, offsetY: number) {
+    constructor(scene: Phaser.Scene, cellSize: number, numCols: number, numRows: number, borderSize: number, gridBorderThickness: number, offsetX: number, offsetY: number) {
         this.scene = scene;
         this.cellSize = cellSize;
         this.borderSize = borderSize;
         this.gridBorderThickness = gridBorderThickness;
         this.offsetX = offsetX;
         this.offsetY = offsetY;
+
+        this.initializeGrid(numCols, numRows);
     }
 
-    initializeGrid(width: number, height: number) {
-        this.cellColors = Array.from({ length: height }, () => Array(width).fill(null));
-        this.cellStates = Array.from({ length: height }, () => Array(width).fill('empty'));
-        for (let y = 0; y < height; y++) {
+    initializeGrid(numCols: number, numRows: number) {
+        this.cellColors = Array.from({ length: numRows }, () => Array(numCols).fill(null));
+        this.cellStates = Array.from({ length: numRows }, () => Array(numCols).fill('empty'));
+        for (let y = 0; y < numRows; y++) {
             const row: Phaser.GameObjects.Graphics[] = [];
-            for (let x = 0; x < width; x++) {
+            for (let x = 0; x < numCols; x++) {
                 const cellX = this.offsetX + x * this.cellSize;
                 const cellY = this.offsetY + y * this.cellSize;
                 const graphics = this.scene.add.graphics();
@@ -38,26 +40,26 @@ export default class Grid {
             }
             this.cellGraphics.push(row);
         }
-        this.drawGrid(width, height);
+        this.drawGrid(numCols, numRows);
     }
 
-    drawGrid(width: number, height: number) {
+    drawGrid(numCols: number, numRows: number) {
         this.gridGraphics = this.scene.add.graphics().lineStyle(this.borderSize, 0x000000);
-        for (let x = 0; x <= width; x++) {
+        for (let x = 0; x <= numCols; x++) {
             const lineX = this.offsetX + x * this.cellSize;
-            this.gridGraphics.moveTo(lineX, this.offsetY).lineTo(lineX, this.offsetY + height * this.cellSize);
+            this.gridGraphics.moveTo(lineX, this.offsetY).lineTo(lineX, this.offsetY + numRows * this.cellSize);
         }
-        for (let y = 0; y <= height; y++) {
+        for (let y = 0; y <= numRows; y++) {
             const lineY = this.offsetY + y * this.cellSize;
-            this.gridGraphics.moveTo(this.offsetX, lineY).lineTo(this.offsetX + width * this.cellSize, lineY);
+            this.gridGraphics.moveTo(this.offsetX, lineY).lineTo(this.offsetX + numCols * this.cellSize, lineY);
         }
         this.gridGraphics.strokePath();
 
         this.scene.add.graphics().lineStyle(this.gridBorderThickness, 0x000000).strokeRect(
             this.offsetX - this.borderSize / 2,
             this.offsetY - this.borderSize / 2,
-            width * this.cellSize + this.borderSize,
-            height * this.cellSize + this.borderSize
+            numCols * this.cellSize + this.borderSize,
+            numRows * this.cellSize + this.borderSize
         );
     }
 

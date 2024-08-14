@@ -1,52 +1,49 @@
 import Phaser from 'phaser';
 import Grid from '../prefabs/Grid';
-import Clue from '../prefabs/Clue';
+import ClueSection from '../prefabs/ClueSection';
 import Palette from '../prefabs/Palette';
-import ImageAnalyzer from '../prefabs/ImageAnalyzer';
+import Puzzle from '../game/Puzzle';
 
 export default class Game extends Phaser.Scene {
     private isDrawing: boolean = false;
     private drawType: 'fill' | 'mark' | 'clear' = 'clear';
-    private cellSize: number = 30;
     private borderSize: number = 2;
     private gridBorderThickness: number = 5;
     private gapSize: number = 10;
+    private grid?: Grid;
+    private rowClues?: ClueSection;
+    private colClues?: ClueSection;
+    private palette?: Palette;
+    private puzzleData?: Puzzle;
+    private level: string = "picture2";
+
+    //size of puzzle
+    private cellSize: number = 30;
     private offsetX: number = 0;
     private offsetY: number = 0;
-    private grid?: Grid;
-    private clues?: Clue;
-    private palette?: Palette;
-    private imageAnalyzer?: ImageAnalyzer;
-    private level: string = "picture1";
+    private gridOffsetX: number = 0;
+    private gridOffsetY: number = 0;
 
     constructor() {
         super({ key: 'Game' });
     }
 
     create() {
-        this.imageAnalyzer = new ImageAnalyzer(this);
-        this.palette = new Palette(this, this.borderSize, this.gapSize);
+        this.puzzleData = new Puzzle(this.textures.get(this.level));
+        this.initializeSize();
+
+        this.grid = new Grid(this, this.cellSize, this.puzzleData.getWidth(), this.puzzleData.getHeight(), this.borderSize, this.gridBorderThickness, this.gridOffsetX, this.gridOffsetY);
+        this.rowClues = new ClueSection(this, this.cellSize, this.borderSize, this.gridOffsetX, this.gridOffsetY, this.puzzleData.getRowClues(), true);
+        this.colClues = new ClueSection(this, this.cellSize, this.borderSize, this.gridOffsetX, this.gridOffsetY, this.puzzleData.getColClues(), false);
+        this.palette = new Palette(this, this.borderSize, this.gapSize, this.puzzleData.extractUniqueColors(), this.cellSize);
     
-        const analysis = this.imageAnalyzer.analyzeImage(this.level);
-        if (analysis) {
-            const mostCommonColor = this.imageAnalyzer.getMostCommonColor(analysis.data);
-            const complementaryColor = this.imageAnalyzer.getComplementaryColor(mostCommonColor);
-    
-            const hsvColor = Phaser.Display.Color.RGBToHSV(
-                Phaser.Display.Color.IntegerToRGB(complementaryColor).r,
-                Phaser.Display.Color.IntegerToRGB(complementaryColor).g,
-                Phaser.Display.Color.IntegerToRGB(complementaryColor).b
-            );
-    
-            const lighterColor = Phaser.Display.Color.HSVToRGB(hsvColor.h, hsvColor.s * 0.2, Math.min(hsvColor.v + 0.2, 1));
-    
-            this.cameras.main.setBackgroundColor(lighterColor.color);
-        }
-    
-        this.analyzeAndDrawImage(this.level);
+        let complementaryColor = this.puzzleData?.getComplementaryBackgroundColor();
+
+        this.cameras.main.setBackgroundColor(complementaryColor);
+
         this.input.mouse?.disableContextMenu();
         this.setupInputEvents();
-    }    
+    }
 
     private setupInputEvents() {
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
@@ -66,8 +63,8 @@ export default class Game extends Phaser.Scene {
     }
 
     private determineDrawType(pointer: Phaser.Input.Pointer) {
-        const pointerX = Math.floor((pointer.x - this.offsetX) / this.cellSize);
-        const pointerY = Math.floor((pointer.y - this.offsetY) / this.cellSize);
+        const pointerX = Math.floor((pointer.x - this.gridOffsetX) / this.cellSize);
+        const pointerY = Math.floor((pointer.y - this.gridOffsetY) / this.cellSize);
 
         if (!this.grid || pointerX < 0 || pointerX >= this.grid.cellColors[0].length || pointerY < 0 || pointerY >= this.grid.cellColors.length) {
             return;
@@ -98,52 +95,30 @@ export default class Game extends Phaser.Scene {
         }
     }
 
-    private analyzeAndDrawImage(key: string) {
-        const analysis = this.imageAnalyzer?.analyzeImage(key);
-        if (analysis) {
-            const { data, width, height } = analysis;
-            this.initializeGrid(data, width, height);
+    private initializeSize() {
+        const screenWidth = this.sys.game.config.width as number;
+        const screenHeight = this.sys.game.config.height as number;
+
+        if (this.puzzleData) {
+            //puzzle size + clues + gaps
+            const numBlocksWidth = this.puzzleData.getWidth() + this.puzzleData.getRowClues().length + 1;
+            const numBlocksHeight = this.puzzleData.getHeight() + this.puzzleData.getColClues().length + 1;
+
+            const maxCellWidth = screenWidth / numBlocksWidth;
+            const maxCellHeight = screenHeight / numBlocksHeight;
+
+            this.cellSize = Math.min(maxCellWidth, maxCellHeight);
+            this.offsetX = (screenWidth - this.cellSize * numBlocksWidth) / 2 - (this.cellSize / 2);
+            this.offsetY = (screenHeight - this.cellSize * numBlocksHeight) / 2 - (this.cellSize / 2);
+
+            this.gridOffsetX = this.offsetX + (this.puzzleData.getRowClues().length * this.cellSize);
+            this.gridOffsetY = this.offsetY + (this.puzzleData.getColClues().length * this.cellSize);
         }
     }
 
-    private initializeGrid(data: Uint8ClampedArray, width: number, height: number) {
-        const screenWidth = this.sys.game.config.width as number;
-        const screenHeight = this.sys.game.config.height as number;
-        const maxGridWidth = screenWidth - this.gapSize * 2 - this.gridBorderThickness * 2;
-        const maxGridHeight = screenHeight - this.gapSize * 2 - this.gridBorderThickness * 2;
-        const cellSizeX = maxGridWidth / (width + 10);
-        const cellSizeY = maxGridHeight / (height + 10);
-        this.cellSize = Math.min(cellSizeX, cellSizeY);
-
-        const gridWidth = width * this.cellSize;
-        const gridHeight = height * this.cellSize;
-
-        this.clues = new Clue(this, this.cellSize, this.borderSize);
-        this.clues.generateClues(width, height, data);
-
-        const maxRowClues = this.clues.getMaxRowClueLength();
-        const maxColClues = this.clues.getMaxColClueLength();
-
-        const totalWidth = gridWidth + maxRowClues * this.cellSize + this.gapSize;
-        const totalHeight = gridHeight + maxColClues * this.cellSize + this.gapSize;
-
-        this.offsetX = Math.max((screenWidth - totalWidth) / 2 + maxRowClues * this.cellSize + this.gapSize, 0);
-        this.offsetY = Math.max((screenHeight - totalHeight) / 2 + maxColClues * this.cellSize + this.gapSize, 0);
-
-        this.clues.setOffsets(this.offsetX, this.offsetY);
-
-        const uniqueColors = this.imageAnalyzer?.extractUniqueColors(data) || [];
-        this.palette?.drawColorPalette(uniqueColors, this.cellSize);
-
-        this.grid = new Grid(this, this.cellSize, this.borderSize, this.gridBorderThickness, this.offsetX, this.offsetY);
-        this.grid.initializeGrid(width, height);
-
-        this.clues.drawClues();
-    }
-
     private fillCell(pointer: Phaser.Input.Pointer) {
-        const pointerX = Math.floor((pointer.x - this.offsetX) / this.cellSize);
-        const pointerY = Math.floor((pointer.y - this.offsetY) / this.cellSize);
+        const pointerX = Math.floor((pointer.x - this.gridOffsetX) / this.cellSize);
+        const pointerY = Math.floor((pointer.y - this.gridOffsetY) / this.cellSize);
 
         if (!this.grid || pointerX < 0 || pointerX >= this.grid.cellColors[0].length || pointerY < 0 || pointerY >= this.grid.cellColors.length) {
             return;
@@ -161,27 +136,20 @@ export default class Game extends Phaser.Scene {
     }
 
     private checkCompletion() {
-        const texture = this.textures.get(this.level);
-        const imageElement = texture.source[0].image as HTMLImageElement;
-
-        const imageData = this.imageAnalyzer?.getImageData(imageElement);
-
-        if (imageData) {
-            if (this.isGridComplete(imageData.data, imageData.width, imageData.height)) {
-                this.finalizeGrid();
-            }
+        if (this.isGridComplete()) {
+            this.finalizeGrid();
         }
     }
 
-    private isGridComplete(data: Uint8ClampedArray, width: number, height: number): boolean {
-        if (!this.grid) {
+    private isGridComplete(): boolean {
+        if (!this.grid || !this.puzzleData) {
             return false;
         }
 
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const index = (x + y * width) * 4;
-                const [r, g, b, a] = data.slice(index, index + 4);
+        for (let y = 0; y < this.puzzleData?.getHeight(); y++) {
+            for (let x = 0; x < this.puzzleData.getWidth(); x++) {
+                const index = (x + y * this.puzzleData.getWidth()) * 4;
+                const [r, g, b, a] = this.puzzleData.getData().slice(index, index + 4);
                 const color = Phaser.Display.Color.GetColor(r, g, b);
 
                 if (a === 0 && this.grid.cellColors[y][x] !== null) {
