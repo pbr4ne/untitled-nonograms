@@ -35,7 +35,6 @@ export default class ClueSection {
                     cellY = this.offsetY - (clueSet.length - j) * this.cellSize - this.cellSize;
                 }
     
-                console.log(clue.getColor());
                 this.scene.add.graphics().fillStyle(clue.getColor(), 1)
                     .fillRect(cellX, cellY, this.cellSize, this.cellSize)
                     .lineStyle(this.borderSize, 0x000000)

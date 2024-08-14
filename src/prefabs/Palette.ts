@@ -13,7 +13,7 @@ export default class Palette {
         this.borderSize = borderSize;
         this.gapSize = gapSize;
         this.colors = colors;
-        this.cellSize = cellSize/2;
+        this.cellSize = cellSize/2 < 50 ? 50 : cellSize/2;
 
         this.drawColorPalette();
     }

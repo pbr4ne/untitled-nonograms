@@ -146,7 +146,6 @@ export default class Puzzle {
             for (let j = 0; j < (isRow ? this.width : this.height); j++) {
                 const index = ((isRow ? j + i * this.width : i + j * this.width) * 4);
                 const [r, g, b, a] = this.data.slice(index, index + 4);
-                console.log(r, g, b, a);
                 const color = Phaser.Display.Color.GetColor(r, g, b);
 
                 if (a > 0 && (count === 0 || color === currentColor)) {
