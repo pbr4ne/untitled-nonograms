@@ -7,15 +7,27 @@ export default class Palette {
     private currentColorIndex: number = -1;
     private gapSize: number;
     private cellSize: number;
+    private textObject?: Phaser.GameObjects.Text;
 
     constructor(scene: Phaser.Scene, borderSize: number, gapSize: number, colors: number[], cellSize: number) {
         this.scene = scene;
         this.borderSize = borderSize;
         this.gapSize = gapSize;
         this.colors = colors;
-        this.cellSize = cellSize/2 < 50 ? 50 : cellSize/2;
+        this.cellSize = cellSize / 2 < 30 ? 30 : cellSize / 2;
 
         this.drawColorPalette();
+    }
+
+    public destroy() {
+        this.colorGraphics.forEach(graphics => graphics.destroy());
+        this.colorGraphics = [];
+
+        this.highlightGraphics?.destroy();
+        this.highlightGraphics = undefined;
+
+        this.textObject?.destroy();
+        this.textObject = undefined;
     }
 
     private drawColorPalette() {
@@ -24,12 +36,11 @@ export default class Palette {
 
         const totalWidth = cols * this.cellSize + (cols - 1) * this.gapSize;
         const totalHeight = rows * this.cellSize + (rows - 1) * this.gapSize;
-        const startX = (this.scene.sys.game.config.width as number) - totalWidth - this.gapSize - 10;
-        const startY = (this.scene.sys.game.config.height as number) - totalHeight - this.gapSize - 10;
+    
+        const startX = window.innerWidth - totalWidth - this.gapSize - 10;
+        const startY = window.innerHeight - totalHeight - this.gapSize - 10;
 
-        const textX = startX + totalWidth / 2;
-        const textY = startY - this.cellSize/2;
-        this.scene.add.text(textX, textY, 'Palette', {
+        this.textObject = this.scene.add.text(startX + totalWidth / 2, startY - this.cellSize / 2, 'Palette', {
             fontSize: `${this.cellSize * 0.5}px`,
             fontFamily: 'Noto Sans Mono',
             color: '#000000',
@@ -72,9 +83,7 @@ export default class Palette {
     }
 
     private updateHighlight(x: number, y: number, size: number) {
-        if (this.highlightGraphics) {
-            this.highlightGraphics.destroy();
-        }
+        this.highlightGraphics?.destroy();
 
         this.highlightGraphics = this.scene.add.graphics()
             .lineStyle(this.borderSize, 0xffff00, 1)

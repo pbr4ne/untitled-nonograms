@@ -4,12 +4,13 @@ import Preload from "./scene/Preload";
 import Game from "./scene/Game";
 
 const game = new Phaser.Game({
-    width: 1920,
-    height: 1080,
+    type: Phaser.AUTO,
+    width: window.innerWidth,
+    height: window.innerHeight,
     backgroundColor: "#023047",
     scale: {
-        mode: Phaser.Scale.ScaleModes.FIT,
-        autoCenter: Phaser.Scale.Center.CENTER_BOTH
+        mode: Phaser.Scale.ScaleModes.RESIZE,
+        autoCenter: Phaser.Scale.Center.CENTER_BOTH,
     },
     scene: [Preload, Game],
     transparent: true,
@@ -23,6 +24,13 @@ const game = new Phaser.Game({
             mapping: 'rexUI'
         }]
     }
+});
+
+window.addEventListener('resize', () => {
+    game.scale.resize(window.innerWidth, window.innerHeight);
+    game.canvas.style.width = `${window.innerWidth}px`;
+    game.canvas.style.height = `${window.innerHeight}px`;
+    (game.scene.getScene('Game') as Game).resize();
 });
 
 game.scene.start("Preload");

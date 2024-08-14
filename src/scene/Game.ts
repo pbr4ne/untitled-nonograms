@@ -96,9 +96,9 @@ export default class Game extends Phaser.Scene {
     }
 
     private initializeSize() {
-        const screenWidth = this.sys.game.config.width as number;
-        const screenHeight = this.sys.game.config.height as number;
-
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+    
         if (this.puzzleData) {
             //puzzle size + clues + gaps
             const numBlocksWidth = this.puzzleData.getWidth() + this.puzzleData.getRowClues().length + 1;
@@ -183,5 +183,24 @@ export default class Game extends Phaser.Scene {
         this.input.off('pointerdown');
         this.input.off('pointerup');
         this.input.off('pointermove');
+    }
+
+    public resize() {
+        this.initializeSize();
+    
+        this.grid?.destroy();
+        this.rowClues?.destroy();
+        this.colClues?.destroy();
+        this.palette?.destroy();
+    
+        if (!this.puzzleData) {
+            return;
+        }
+        this.grid = new Grid(this, this.cellSize, this.puzzleData.getWidth(), this.puzzleData.getHeight(), this.borderSize, this.gridBorderThickness, this.gridOffsetX, this.gridOffsetY);
+        this.rowClues = new ClueSection(this, this.cellSize, this.borderSize, this.gridOffsetX, this.gridOffsetY, this.puzzleData.getRowClues(), true);
+        this.colClues = new ClueSection(this, this.cellSize, this.borderSize, this.gridOffsetX, this.gridOffsetY, this.puzzleData.getColClues(), false);
+        this.palette = new Palette(this, this.borderSize, this.gapSize, this.puzzleData.extractUniqueColors(), this.cellSize);
+    
+        this.setupInputEvents();
     }
 }

@@ -13,6 +13,7 @@ export default class Grid {
     public cellColors: (number | null)[][] = [];
     public cellStates: CellState[][] = [];
     private gridGraphics?: Phaser.GameObjects.Graphics;
+    private gridBorderGraphics?: Phaser.GameObjects.Graphics;
 
     constructor(scene: Phaser.Scene, cellSize: number, numCols: number, numRows: number, borderSize: number, gridBorderThickness: number, offsetX: number, offsetY: number) {
         this.scene = scene;
@@ -23,6 +24,26 @@ export default class Grid {
         this.offsetY = offsetY;
 
         this.initializeGrid(numCols, numRows);
+    }
+
+    public destroy() {
+        this.cellGraphics.forEach(row => {
+            row.forEach(cell => cell.destroy());
+        });
+        this.cellGraphics = [];
+
+        if (this.gridGraphics) {
+            this.gridGraphics.destroy();
+            this.gridGraphics = undefined;
+        }
+
+        if (this.gridBorderGraphics) {
+            this.gridBorderGraphics.destroy();
+            this.gridBorderGraphics = undefined;
+        }
+
+        this.cellColors = [];
+        this.cellStates = [];
     }
 
     initializeGrid(numCols: number, numRows: number) {
@@ -55,7 +76,8 @@ export default class Grid {
         }
         this.gridGraphics.strokePath();
 
-        this.scene.add.graphics().lineStyle(this.gridBorderThickness, 0x000000).strokeRect(
+        this.gridBorderGraphics = this.scene.add.graphics().lineStyle(this.gridBorderThickness, 0x000000);
+        this.gridBorderGraphics.strokeRect(
             this.offsetX - this.borderSize / 2,
             this.offsetY - this.borderSize / 2,
             numCols * this.cellSize + this.borderSize,

@@ -9,6 +9,8 @@ export default class ClueSection {
     private offsetY: number;
     public clues: (Clue)[][] = [];
     private isRow: boolean;
+    private graphicsObjects: Phaser.GameObjects.Graphics[] = [];
+    private textObjects: Phaser.GameObjects.Text[] = [];
 
     constructor(scene: Phaser.Scene, cellSize: number, borderSize: number, offsetX: number, offsetY: number, clues: (Clue)[][], isRow: boolean) {
         this.scene = scene;
@@ -20,6 +22,14 @@ export default class ClueSection {
         this.isRow = isRow;
 
         this.drawClueSet();
+    }
+
+    public destroy() {
+        this.graphicsObjects.forEach(graphic => graphic.destroy());
+        this.graphicsObjects = [];
+
+        this.textObjects.forEach(text => text.destroy());
+        this.textObjects = [];
     }
 
     private drawClueSet() {
@@ -34,20 +44,24 @@ export default class ClueSection {
                     cellX = this.offsetX + i * this.cellSize;
                     cellY = this.offsetY - (clueSet.length - j) * this.cellSize - this.cellSize;
                 }
-    
-                this.scene.add.graphics().fillStyle(clue.getColor(), 1)
+
+                const graphics = this.scene.add.graphics().fillStyle(clue.getColor(), 1)
                     .fillRect(cellX, cellY, this.cellSize, this.cellSize)
                     .lineStyle(this.borderSize, 0x000000)
                     .strokeRect(cellX, cellY, this.cellSize, this.cellSize);
-    
+
+                this.graphicsObjects.push(graphics);
+
                 const textColor = this.calculateBrightness(clue.getColor()) < 128 ? '#ffffff' : '#000000';
                 const fontSize = this.cellSize * 0.50;
-                this.scene.add.text(cellX + this.cellSize / 2, cellY + this.cellSize / 2, clue.getNumber().toString(), { 
+                const text = this.scene.add.text(cellX + this.cellSize / 2, cellY + this.cellSize / 2, clue.getNumber().toString(), { 
                     color: textColor,
                     fontSize: `${fontSize}px`,
                     fontFamily: 'Noto Sans Mono',
                 })
                 .setOrigin(0.5);
+
+                this.textObjects.push(text);
             });
         });
     }    
