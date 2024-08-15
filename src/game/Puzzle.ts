@@ -61,6 +61,11 @@ export default class Puzzle {
         return this.colClues;
     }
 
+    public getLongestClueLength(isRow: boolean): number {
+        const clues = isRow ? this.rowClues : this.colClues;
+        return Math.max(...clues.map((line) => line.length));
+    }
+
     public getComplementaryBackgroundColor(): number {
         let color = this.getMostCommonColor();
         const { r, g, b } = Phaser.Display.Color.IntegerToRGB(color);

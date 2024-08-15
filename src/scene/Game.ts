@@ -15,10 +15,10 @@ export default class Game extends Phaser.Scene {
     private colClues?: ClueSection;
     private palette?: Palette;
     private puzzleData?: Puzzle;
-    private level: string = "picture2";
+    private level: string = "picture1";
 
     //size of puzzle
-    private cellSize: number = 30;
+    private cellSize: number = 0;
     private offsetX: number = 0;
     private offsetY: number = 0;
     private gridOffsetX: number = 0;
@@ -100,19 +100,35 @@ export default class Game extends Phaser.Scene {
         const screenHeight = window.innerHeight;
     
         if (this.puzzleData) {
-            //puzzle size + clues + gaps
-            const numBlocksWidth = this.puzzleData.getWidth() + this.puzzleData.getRowClues().length + 1;
-            const numBlocksHeight = this.puzzleData.getHeight() + this.puzzleData.getColClues().length + 1;
-
-            const maxCellWidth = screenWidth / numBlocksWidth;
-            const maxCellHeight = screenHeight / numBlocksHeight;
-
+            const puzzleWidth = this.puzzleData.getWidth();
+            const puzzleHeight = this.puzzleData.getHeight();
+    
+            const cellBuffer = 1;
+    
+            const maxCellWidth = screenWidth / (puzzleWidth + this.puzzleData.getLongestClueLength(true) + cellBuffer * 3);
+            const maxCellHeight = screenHeight / (puzzleHeight + this.puzzleData.getLongestClueLength(false) + cellBuffer * 3);
+    
             this.cellSize = Math.min(maxCellWidth, maxCellHeight);
-            this.offsetX = (screenWidth - this.cellSize * numBlocksWidth) / 2 - (this.cellSize / 2);
-            this.offsetY = (screenHeight - this.cellSize * numBlocksHeight) / 2 - (this.cellSize / 2);
-
-            this.gridOffsetX = this.offsetX + (this.puzzleData.getRowClues().length * this.cellSize);
-            this.gridOffsetY = this.offsetY + (this.puzzleData.getColClues().length * this.cellSize);
+    
+            this.gridOffsetX = (screenWidth - this.cellSize * (puzzleWidth + cellBuffer * 2)) / 2 + cellBuffer * this.cellSize;
+            this.gridOffsetY = (screenHeight - this.cellSize * (puzzleHeight + cellBuffer * 2)) / 2 + cellBuffer * this.cellSize;
+    
+            this.offsetX = this.gridOffsetX - (this.puzzleData.getLongestClueLength(true) + cellBuffer) * this.cellSize;
+            this.offsetY = this.gridOffsetY - (this.puzzleData.getLongestClueLength(false) + cellBuffer) * this.cellSize;
+    
+            const clueTopEdge = this.offsetY;
+            if (clueTopEdge < cellBuffer * this.cellSize) {
+                const verticalAdjustment = cellBuffer * this.cellSize - clueTopEdge;
+                this.gridOffsetY += verticalAdjustment;
+                this.offsetY += verticalAdjustment;
+            }
+    
+            const clueLeftEdge = this.offsetX;
+            if (clueLeftEdge < cellBuffer * this.cellSize) {
+                const horizontalAdjustment = cellBuffer * this.cellSize - clueLeftEdge;
+                this.gridOffsetX += horizontalAdjustment;
+                this.offsetX += horizontalAdjustment;
+            }
         }
     }
 
