@@ -2,7 +2,7 @@ const { createCanvas, loadImage } = require('canvas');
 const fs = require('fs');
 const path = require('path');
 
-async function convertImageToJson(imagePath: any, outputJsonPath: any) {
+async function convertImageToJson(imagePath: string, outputJsonPath: string) {
     try {
         const image = await loadImage(imagePath);
         const canvas = createCanvas(image.width, image.height);
@@ -14,12 +14,22 @@ async function convertImageToJson(imagePath: any, outputJsonPath: any) {
         const data = imageData.data;
         
         const pixelArray = [];
-        for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            const a = data[i + 3];
-            pixelArray.push([r, g, b, a]);
+        for (let y = 0; y < image.height; y++) {
+            const row = [];
+            for (let x = 0; x < image.width; x++) {
+                const index = (y * image.width + x) * 4;
+                const r = data[index];
+                const g = data[index + 1];
+                const b = data[index + 2];
+                const a = data[index + 3];
+                
+                if (a === 0) {
+                    row.push(null);
+                } else {
+                    row.push([r, g, b]);
+                }
+            }
+            pixelArray.push(row);
         }
         
         const jsonOutput = {
@@ -28,7 +38,7 @@ async function convertImageToJson(imagePath: any, outputJsonPath: any) {
             pixels: pixelArray,
         };
         
-        fs.writeFileSync(outputJsonPath, JSON.stringify(jsonOutput, null, 2));
+        fs.writeFileSync(outputJsonPath, JSON.stringify(jsonOutput));
         console.log(`Image data written to ${outputJsonPath}`);
     } catch (error) {
         console.error('Error converting image to JSON:', error);

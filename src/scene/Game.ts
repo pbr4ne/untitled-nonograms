@@ -160,23 +160,29 @@ export default class Game extends Phaser.Scene {
         if (!this.grid || !this.puzzleData) {
             return false;
         }
-
-        for (let y = 0; y < this.puzzleData?.getHeight(); y++) {
+    
+        for (let y = 0; y < this.puzzleData.getHeight(); y++) {
             for (let x = 0; x < this.puzzleData.getWidth(); x++) {
-                const index = (x + y * this.puzzleData.getWidth()) * 4;
-                const [r, g, b, a] = this.puzzleData.getData().slice(index, index + 4);
-                const color = Phaser.Display.Color.GetColor(r, g, b);
-
-                if (a === 0 && this.grid.cellColors[y][x] !== null) {
+                const pixel = this.puzzleData.getColor(x, y);
+    
+                if (pixel === null && this.grid.cellColors[y][x] !== null) {
                     return false;
                 }
-
-                if (a > 0 && (this.grid.cellColors[y][x] === null || this.grid.cellColors[y][x] !== color)) {
-                    return false;
+    
+                if (pixel !== null) {
+                    const gridColor = this.grid.cellColors[y][x];
+                    if (gridColor === null || !this.colorsMatch(pixel, gridColor)) {
+                        return false;
+                    }
                 }
             }
         }
         return true;
+    }
+    
+    private colorsMatch(color1: Phaser.Display.Color, color2: number): boolean {
+        const rgb = Phaser.Display.Color.IntegerToRGB(color2);
+        return color1.red === rgb.r && color1.green === rgb.g && color1.blue === rgb.b;
     }
 
     private finalizeGrid() {

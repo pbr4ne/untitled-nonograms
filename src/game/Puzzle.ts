@@ -1,15 +1,13 @@
 import Clue from "./Clue";
 
 export default class Puzzle {
-    private pixels: (Phaser.Display.Color | null)[][] = [];
-    private data: Uint8ClampedArray = new Uint8ClampedArray();
+    private pixels: (number[] | null)[][] = [];
     private width: number = 0;
     private height: number = 0;
     private rowClues: (Clue)[][] = [];
     private colClues: (Clue)[][] = [];
 
-    private constructor() {
-    }
+    private constructor() {}
 
     public static async load(scene: Phaser.Scene, textureKey: string): Promise<Puzzle> {
         return new Promise<Puzzle>((resolve, reject) => {
@@ -31,9 +29,7 @@ export default class Puzzle {
     private onJsonLoaded(data: any) {
         this.width = data.width;
         this.height = data.height;
-        this.data = new Uint8ClampedArray(data.pixels.flat());
-
-        this.populatePixels();
+        this.pixels = data.pixels;
 
         this.rowClues = this.generateClueSet(true);
         this.colClues = this.generateClueSet(false);
@@ -41,13 +37,10 @@ export default class Puzzle {
 
     public getColor(x: number, y: number): Phaser.Display.Color | null {
         if (y >= 0 && y < this.pixels.length && x >= 0 && x < this.pixels[y].length) {
-            return this.pixels[y][x];
+            const pixel = this.pixels[y][x];
+            return pixel ? new Phaser.Display.Color(pixel[0], pixel[1], pixel[2]) : null;
         }
         return null;
-    }
-
-    public getData(): Uint8ClampedArray {
-        return this.data;
     }
 
     public getWidth(): number {
@@ -88,41 +81,25 @@ export default class Puzzle {
 
     public extractUniqueColors(): number[] {
         const uniqueColors = new Set<number>();
-        for (let i = 0; i < this.data.length; i += 4) {
-            const [r, g, b, a] = this.data.slice(i, i + 4);
-            if (a === 255) {
-                uniqueColors.add(Phaser.Display.Color.GetColor(r, g, b));
+        for (const row of this.pixels) {
+            for (const pixel of row) {
+                if (pixel !== null) {
+                    uniqueColors.add(Phaser.Display.Color.GetColor(pixel[0], pixel[1], pixel[2]));
+                }
             }
         }
         return Array.from(uniqueColors);
     }
 
-    private populatePixels(): void {
-        this.pixels = [];
-        for (let y = 0; y < this.height; y++) {
-            const row: (Phaser.Display.Color | null)[] = [];
-            for (let x = 0; x < this.width; x++) {
-                const index = (x + y * this.width) * 4;
-                const [r, g, b, a] = this.data.slice(index, index + 4);
-                //only consider pixels with full alpha
-                if (a === 255) {
-                    row.push(new Phaser.Display.Color(r, g, b));
-                } else {
-                    row.push(null);
-                }
-            }
-            this.pixels.push(row);
-        }
-    }
-
     private getMostCommonColor(): number {
         const colorCount = new Map<number, number>();
 
-        for (let i = 0; i < this.data.length; i += 4) {
-            const [r, g, b, a] = this.data.slice(i, i + 4);
-            if (a > 0) {
-                const color = Phaser.Display.Color.GetColor(r, g, b);
-                colorCount.set(color, (colorCount.get(color) || 0) + 1);
+        for (const row of this.pixels) {
+            for (const pixel of row) {
+                if (pixel !== null) {
+                    const color = Phaser.Display.Color.GetColor(pixel[0], pixel[1], pixel[2]);
+                    colorCount.set(color, (colorCount.get(color) || 0) + 1);
+                }
             }
         }
 
@@ -147,19 +124,18 @@ export default class Puzzle {
             let currentColor: number | null = null;
 
             for (let j = 0; j < (isRow ? this.width : this.height); j++) {
-                const index = ((isRow ? j + i * this.width : i + j * this.width) * 4);
-                const [r, g, b, a] = this.data.slice(index, index + 4);
-                const color = Phaser.Display.Color.GetColor(r, g, b);
+                const pixel = isRow ? this.pixels[i][j] : this.pixels[j][i];
+                const color = pixel ? Phaser.Display.Color.GetColor(pixel[0], pixel[1], pixel[2]) : null;
 
-                if (a > 0 && (count === 0 || color === currentColor)) {
+                if (color !== null && (count === 0 || color === currentColor)) {
                     count++;
                     currentColor = color;
                 } else {
                     if (count > 0 && currentColor !== null) {
                         line.push(new Clue(currentColor, count));
                     }
-                    currentColor = (a > 0) ? color : null;
-                    count = a > 0 ? 1 : 0;
+                    currentColor = color;
+                    count = color !== null ? 1 : 0;
                 }
             }
             if (count > 0 && currentColor !== null) {
