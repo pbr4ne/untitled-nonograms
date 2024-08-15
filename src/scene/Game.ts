@@ -121,14 +121,17 @@ export default class Game extends Phaser.Scene {
         if (!this.grid) {
             return false;
         }
+
+        const adjustedPointerX = pointer.x + this.cameras.main.scrollX;
+        const adjustedPointerY = pointer.y + this.cameras.main.scrollY;
     
         const gridLeft = this.gridOffsetX;
         const gridRight = this.gridOffsetX + this.grid.getWidthInPixels();
         const gridTop = this.gridOffsetY;
         const gridBottom = this.gridOffsetY + this.grid.getHeightInPixels();
     
-        const isWithinHorizontalBounds = pointer.x >= gridLeft && pointer.x <= gridRight;
-        const isWithinVerticalBounds = pointer.y >= gridTop && pointer.y <= gridBottom;
+        const isWithinHorizontalBounds = adjustedPointerX >= gridLeft && adjustedPointerX <= gridRight;
+        const isWithinVerticalBounds = adjustedPointerY >= gridTop && adjustedPointerY <= gridBottom;
     
         return isWithinHorizontalBounds && isWithinVerticalBounds;
     }
