@@ -24,6 +24,13 @@ export default class Game extends Phaser.Scene {
     private gridOffsetX: number = 0;
     private gridOffsetY: number = 0;
 
+    //drag & zoom
+    private isDragging: boolean = false;
+    private dragStartX: number = 0;
+    private dragStartY: number = 0;
+    private initialDistance: number = 0;
+    private initialZoom: number = 1;
+
     constructor() {
         super({ key: 'Game' });
     }
@@ -40,37 +47,106 @@ export default class Game extends Phaser.Scene {
         const complementaryColor = this.puzzleData.getComplementaryBackgroundColor();
         this.cameras.main.setBackgroundColor(complementaryColor);
 
+        this.cameras.main.setZoom(1);
         this.input.mouse?.disableContextMenu();
         this.setupInputEvents();
     }
 
     private setupInputEvents() {
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-            this.isDrawing = true;
-            this.determineDrawType(pointer);
-            this.fillCell(pointer);
+        
+            if ((this.isPointerWithinGrid(pointer))) {
+                this.isDrawing = true;
+                this.determineDrawType(pointer);
+                this.fillCell(pointer);
+            } else {
+                this.isDragging = true;
+                this.dragStartX = pointer.x;
+                this.dragStartY = pointer.y;
+            }
         });
-        this.input.on('pointerup', () => {
-            this.isDrawing = false;
-            this.checkCompletion();
-        });
+
         this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
             if (this.isDrawing) {
                 this.fillCell(pointer);
+                return;
             }
+
+            if (this.isDragging) {
+                const deltaX = pointer.x - this.dragStartX;
+                const deltaY = pointer.y - this.dragStartY;
+
+                this.cameras.main.scrollX -= deltaX / this.cameras.main.zoom;
+                this.cameras.main.scrollY -= deltaY / this.cameras.main.zoom;
+
+                this.dragStartX = pointer.x;
+                this.dragStartY = pointer.y;
+            }
+        });
+
+        this.input.on('pointerup', () => {
+            this.isDragging = false;
+            this.isDrawing = false;
+            this.checkCompletion();
+        });
+
+        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            if (this.input.pointer1.isDown && this.input.pointer2.isDown) {
+                this.initialDistance = Phaser.Math.Distance.Between(
+                    this.input.pointer1.x, this.input.pointer1.y,
+                    this.input.pointer2.x, this.input.pointer2.y
+                );
+                this.initialZoom = this.cameras.main.zoom;
+            }
+        });
+
+        this.input.on('pointermove', () => {
+            if (this.input.pointer1.isDown && this.input.pointer2.isDown) {
+                const currentDistance = Phaser.Math.Distance.Between(
+                    this.input.pointer1.x, this.input.pointer1.y,
+                    this.input.pointer2.x, this.input.pointer2.y
+                );
+
+                const zoomFactor = currentDistance / this.initialDistance;
+                this.cameras.main.setZoom(Phaser.Math.Clamp(this.initialZoom * zoomFactor, 0.5, 2)); // Adjust zoom limits as needed
+            }
+        });
+
+        this.input.on('pointerup', () => {
+            this.isDragging = false;
         });
     }
 
-    private determineDrawType(pointer: Phaser.Input.Pointer) {
-        const pointerX = Math.floor((pointer.x - this.gridOffsetX) / this.cellSize);
-        const pointerY = Math.floor((pointer.y - this.gridOffsetY) / this.cellSize);
+    private isPointerWithinGrid(pointer: Phaser.Input.Pointer): boolean {
+        if (!this.grid) {
+            return false;
+        }
+    
+        const gridLeft = this.gridOffsetX;
+        const gridRight = this.gridOffsetX + this.grid.getWidthInPixels();
+        const gridTop = this.gridOffsetY;
+        const gridBottom = this.gridOffsetY + this.grid.getHeightInPixels();
+    
+        const isWithinHorizontalBounds = pointer.x >= gridLeft && pointer.x <= gridRight;
+        const isWithinVerticalBounds = pointer.y >= gridTop && pointer.y <= gridBottom;
+    
+        return isWithinHorizontalBounds && isWithinVerticalBounds;
+    }
 
+    private determineDrawType(pointer: Phaser.Input.Pointer) {
+        const adjustedPointerX = pointer.x + this.cameras.main.scrollX;
+        const adjustedPointerY = pointer.y + this.cameras.main.scrollY;
+    
+        const pointerX = Math.floor((adjustedPointerX - this.gridOffsetX) / this.cellSize);
+        const pointerY = Math.floor((adjustedPointerY - this.gridOffsetY) / this.cellSize);
+    
         if (!this.grid || pointerX < 0 || pointerX >= this.grid.cellColors[0].length || pointerY < 0 || pointerY >= this.grid.cellColors.length) {
             return;
         }
-
+    
         const currentState = this.grid.cellStates[pointerY][pointerX];
         const selectedColor = this.palette?.getCurrentColor();
+        const currentColor = this.grid.cellColors[pointerY][pointerX];
 
         if (pointer.rightButtonDown()) {
             if (currentState === 'empty' || currentState === 'filled') {
@@ -84,7 +160,6 @@ export default class Game extends Phaser.Scene {
                     this.drawType = 'fill';
                 }
             } else if (currentState === 'filled') {
-                const currentColor = this.grid.cellColors[pointerY][pointerX];
                 if (selectedColor !== null && currentColor !== selectedColor) {
                     this.drawType = 'fill';
                 } else {
@@ -132,15 +207,17 @@ export default class Game extends Phaser.Scene {
     }
 
     private fillCell(pointer: Phaser.Input.Pointer) {
-        const pointerX = Math.floor((pointer.x - this.gridOffsetX) / this.cellSize);
-        const pointerY = Math.floor((pointer.y - this.gridOffsetY) / this.cellSize);
+        const adjustedPointerX = pointer.x + this.cameras.main.scrollX;
+        const adjustedPointerY = pointer.y + this.cameras.main.scrollY;
+
+        const pointerX = Math.floor((adjustedPointerX - this.gridOffsetX) / this.cellSize);
+        const pointerY = Math.floor((adjustedPointerY - this.gridOffsetY) / this.cellSize);
 
         if (!this.grid || pointerX < 0 || pointerX >= this.grid.cellColors[0].length || pointerY < 0 || pointerY >= this.grid.cellColors.length) {
             return;
         }
 
-        const selectedColor = this.palette?.getCurrentColor();
-        const currentColor = selectedColor !== null && selectedColor !== undefined ? selectedColor : 0xffffff;
+        const currentColor = this.palette?.getCurrentColor() ?? 0xffffff;
 
         if (this.drawType === 'fill') {
             this.grid.fillCell(pointerX, pointerY, currentColor);

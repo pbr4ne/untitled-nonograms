@@ -46,6 +46,14 @@ export default class Grid {
         this.cellStates = [];
     }
 
+    public getWidthInPixels() {
+        return this.cellSize * this.cellGraphics[0].length;
+    }
+
+    public getHeightInPixels() {
+        return this.cellSize * this.cellGraphics.length;
+    }
+
     initializeGrid(numCols: number, numRows: number) {
         this.cellColors = Array.from({ length: numRows }, () => Array(numCols).fill(null));
         this.cellStates = Array.from({ length: numRows }, () => Array(numCols).fill('empty'));
