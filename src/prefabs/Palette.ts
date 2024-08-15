@@ -72,6 +72,16 @@ export default class Palette {
                 this.currentColorIndex = 0;
                 this.updateHighlight(x, y, this.cellSize);
             }
+    
+            // for debugging on mobile
+            /*
+            const colorHex = Phaser.Display.Color.IntegerToColor(color).rgba;
+            this.scene.add.text(10, 10 + index * (this.cellSize * 0.5 + 5), `Color ${index}: ${colorHex}`, {
+                fontSize: `${this.cellSize * 0.5}px`,
+                fontFamily: 'Noto Sans Mono',
+                color: '#000000',
+            });
+            */
         });
     }
 

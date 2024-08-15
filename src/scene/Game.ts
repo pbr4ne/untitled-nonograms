@@ -28,8 +28,8 @@ export default class Game extends Phaser.Scene {
         super({ key: 'Game' });
     }
 
-    create() {
-        this.puzzleData = new Puzzle(this.textures.get(this.level));
+    async create() {
+        this.puzzleData = await Puzzle.load(this, this.level);
         this.initializeSize();
 
         this.grid = new Grid(this, this.cellSize, this.puzzleData.getWidth(), this.puzzleData.getHeight(), this.borderSize, this.gridBorderThickness, this.gridOffsetX, this.gridOffsetY);
@@ -37,8 +37,7 @@ export default class Game extends Phaser.Scene {
         this.colClues = new ClueSection(this, this.cellSize, this.borderSize, this.gridOffsetX, this.gridOffsetY, this.puzzleData.getColClues(), false);
         this.palette = new Palette(this, this.borderSize, this.gapSize, this.puzzleData.extractUniqueColors(), this.cellSize);
     
-        let complementaryColor = this.puzzleData?.getComplementaryBackgroundColor();
-
+        const complementaryColor = this.puzzleData.getComplementaryBackgroundColor();
         this.cameras.main.setBackgroundColor(complementaryColor);
 
         this.input.mouse?.disableContextMenu();

@@ -1,34 +1,39 @@
 import Clue from "./Clue";
 
 export default class Puzzle {
-    private pixels: (Phaser.Display.Color | null)[][];
-    private data: Uint8ClampedArray;
-    private width: number;
-    private height: number;
+    private pixels: (Phaser.Display.Color | null)[][] = [];
+    private data: Uint8ClampedArray = new Uint8ClampedArray();
+    private width: number = 0;
+    private height: number = 0;
     private rowClues: (Clue)[][] = [];
     private colClues: (Clue)[][] = [];
 
-    constructor(texture: Phaser.Textures.Texture) {
-        this.pixels = [];
+    private constructor() {
+    }
 
-        if (!texture?.source[0]?.image) {
-            throw new Error('Invalid texture source');
-        }
+    public static async load(scene: Phaser.Scene, textureKey: string): Promise<Puzzle> {
+        return new Promise<Puzzle>((resolve, reject) => {
+            scene.load.json(textureKey, `/assets/puzzles/${textureKey}.json`);
+            scene.load.once('complete', () => {
+                const data = scene.cache.json.get(textureKey);
+                if (data) {
+                    const puzzle = new Puzzle();
+                    puzzle.onJsonLoaded(data);
+                    resolve(puzzle);
+                } else {
+                    reject(new Error(`JSON data with key "${textureKey}" is not found in the cache.`));
+                }
+            });
+            scene.load.start();
+        });
+    }
 
-        const imageElement = texture.source[0].image as HTMLImageElement;
-        const [canvas, context] = this.createCanvasAndContext(imageElement);
+    private onJsonLoaded(data: any) {
+        this.width = data.width;
+        this.height = data.height;
+        this.data = new Uint8ClampedArray(data.pixels.flat());
 
-        if (!context) {
-            throw new Error('Unable to get 2D context from canvas');
-        }
-
-        context.drawImage(imageElement, 0, 0);
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        this.data = imageData.data;
-        this.width = canvas.width;
-        this.height = canvas.height;
-    
-        this.populatePixels(this.data, this.width, this.height);
+        this.populatePixels();
 
         this.rowClues = this.generateClueSet(true);
         this.colClues = this.generateClueSet(false);
@@ -92,11 +97,12 @@ export default class Puzzle {
         return Array.from(uniqueColors);
     }
 
-    private populatePixels(data: Uint8ClampedArray, width: number, height: number): void {
-        for (let y = 0; y < height; y++) {
+    private populatePixels(): void {
+        this.pixels = [];
+        for (let y = 0; y < this.height; y++) {
             const row: (Phaser.Display.Color | null)[] = [];
-            for (let x = 0; x < width; x++) {
-                const index = (x + y * width) * 4;
+            for (let x = 0; x < this.width; x++) {
+                const index = (x + y * this.width) * 4;
                 const [r, g, b, a] = this.data.slice(index, index + 4);
                 //only consider pixels with full alpha
                 if (a === 255) {
@@ -107,14 +113,6 @@ export default class Puzzle {
             }
             this.pixels.push(row);
         }
-    }
-
-    private createCanvasAndContext(imageElement: HTMLImageElement): [HTMLCanvasElement, CanvasRenderingContext2D | null] {
-        const canvas = document.createElement('canvas');
-        canvas.width = imageElement.width;
-        canvas.height = imageElement.height;
-        const context = canvas.getContext('2d');
-        return [canvas, context];
     }
 
     private getMostCommonColor(): number {
@@ -171,5 +169,4 @@ export default class Puzzle {
         }
         return clues;
     }
-    
 }
