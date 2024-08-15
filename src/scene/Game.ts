@@ -139,7 +139,8 @@ export default class Game extends Phaser.Scene {
             return;
         }
 
-        const currentColor = this.palette?.getCurrentColor() || 0xffffff;
+        const selectedColor = this.palette?.getCurrentColor();
+        const currentColor = selectedColor !== null && selectedColor !== undefined ? selectedColor : 0xffffff;
 
         if (this.drawType === 'fill') {
             this.grid.fillCell(pointerX, pointerY, currentColor);
